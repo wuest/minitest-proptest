@@ -1,6 +1,15 @@
 module Minitest
   class Proptest < Minitest::Test
     class Gen
+      class Int8 < Integer; end
+      class Int16 < Integer; end
+      class Int32 < Integer; end
+      class Int64 < Integer; end
+      class UInt8 < Integer; end
+      class UInt16 < Integer; end
+      class UInt32 < Integer; end
+      class UInt64 < Integer; end
+
       Result = Struct.new(:entropy, :value)
 
       instance_variable_set(:@_generators, {})
@@ -33,14 +42,56 @@ module Minitest
         gen.call(@random)
       end
 
+      # Integer assumes the system's word size for max
+      generator_for(Integer) do |r|
+        @__arch_intsize ||= ((1 << (1.size * 8)) - 1)
+        i = r.rand(@__arch_intsize) - (@__arch_intsize / 2 + 1)
+        Result.new([i], i)
+      end
+
+      generator_for(Int8) do |r|
+        i = r.rand(-0x80..0x7f)
+        Result.new([i], i)
+      end
+
+      generator_for(Int16) do |r|
+        i = r.rand(-0x8000..0x7fff)
+        Result.new([i], i)
+      end
+
+      generator_for(Int32) do |r|
+        i = r.rand(-0x80000000..0x7fffffff)
+        Result.new([i], i)
+      end
+
+      generator_for(Int64) do |r|
+        i = r.rand(0xffffffffffffffff) - 0x8000000000000000
+        Result.new([i], i)
+      end
+
+      generator_for(UInt8) do |r|
+        i = r.rand(0xff)
+        Result.new([i], i)
+      end
+
+      generator_for(UInt16) do |r|
+        i = r.rand(0xffff)
+        Result.new([i], i)
+      end
+
+      generator_for(UInt32) do |r|
+        i = r.rand(0xffffffff)
+        Result.new([i], i)
+      end
+
+      generator_for(UInt64) do |r|
+        i = r.rand(0xffffffffffffffff)
+        Result.new([i], i)
+      end
+
       generator_for(String) do |r|
         i = r.rand(0xff)
         Result.new([i], i.chr)
-      end
-
-      generator_for(Integer) do |r|
-        i = r.rand(0xffffffffffffffff)
-        Result.new([i], i)
       end
 
       generator_for(Array) do |c|
