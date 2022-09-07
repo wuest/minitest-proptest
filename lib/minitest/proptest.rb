@@ -6,14 +6,16 @@ require 'minitest/proptest/status'
 module Minitest
   class Proptest < Minitest::Test
     # Convenience classes for type generators
-    Int8   = ::Minitest::Proptest::Gen::Int8
-    Int16  = ::Minitest::Proptest::Gen::Int16
-    Int32  = ::Minitest::Proptest::Gen::Int32
-    Int64  = ::Minitest::Proptest::Gen::Int64
-    UInt8  = ::Minitest::Proptest::Gen::UInt8
-    UInt16 = ::Minitest::Proptest::Gen::UInt16
-    UInt32 = ::Minitest::Proptest::Gen::UInt32
-    UInt64 = ::Minitest::Proptest::Gen::UInt64
+    Int8      = ::Minitest::Proptest::Gen::Int8
+    Int16     = ::Minitest::Proptest::Gen::Int16
+    Int32     = ::Minitest::Proptest::Gen::Int32
+    Int64     = ::Minitest::Proptest::Gen::Int64
+    UInt8     = ::Minitest::Proptest::Gen::UInt8
+    UInt16    = ::Minitest::Proptest::Gen::UInt16
+    UInt32    = ::Minitest::Proptest::Gen::UInt32
+    UInt64    = ::Minitest::Proptest::Gen::UInt64
+    ASCIIChar = ::Minitest::Proptest::Gen::ASCIIChar
+    Char      = ::Minitest::Proptest::Gen::Char
 
     def initialize(_)
       # Any class which provides `rand` accepting both an Integer and a Range

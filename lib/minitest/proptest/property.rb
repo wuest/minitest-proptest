@@ -12,7 +12,7 @@ module Minitest
         random: Random.new,
         # Maximum number of successful cases before considering the test a
         # success.
-        max_success: 1000,
+        max_success: 100,
         # Maximum ratio of discarded tests per successful test before giving up.
         max_discard_ratio: 10,
         # Maximum amount of entropy to generate in a single run
@@ -23,6 +23,7 @@ module Minitest
       )
         @test_proc         = test_proc
         @random            = random
+        @generator         = ::Minitest::Proptest::Gen.new(@random)
         @max_success       = max_success
         @max_discard_ratio = max_discard_ratio
         @max_size          = max_size
@@ -34,18 +35,23 @@ module Minitest
         @calls             = 0
         @valid_test_cases  = 0
         @generated         = []
+        @arbitrary         = nil
       end
 
       def run!
-        iterate
-        shrink
+        iterate!
+        shrink!
       end
 
       def arbitrary(*classes)
-        a = ::Minitest::Proptest::Gen.new(@random).for(*classes)
-        @generated << a
-        @status = Status.overrun unless @generated.length <= @max_size
-        a.value
+        if @arbitrary
+          @arbitrary.call(*classes)
+        else
+          a = @generator.for(*classes)
+          @generated << a
+          @status = Status.overrun unless @generated.length <= @max_size
+          a.value
+        end
       end
 
       def explain
@@ -65,9 +71,7 @@ module Minitest
                elsif @status.interesting?
                  "The property has found a counterexample after " +
                    "#{@valid_test_cases} valid examples.  The minimal " +
-                   "counterexample consists of:\n  Raw values: " +
-                   @generated.map(&:entropy).inspect +
-                   "\n  Generated values: " +
+                   "counterexample consists of:\n" +
                    @generated.map(&:value).inspect
                end
         trivial = if @trivial
@@ -83,9 +87,10 @@ module Minitest
 
       private
 
-      def iterate
+      def iterate!
         while continue? && (@result.nil? || @valid_test_cases <= @max_success / 2)
           @generated = []
+          @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
           if instance_eval(&@test_proc)
             @status = Status.valid if @status.unknown?
@@ -102,17 +107,57 @@ module Minitest
         raise e
       end
 
-      def target
-      end
+      def shrink!
+        return if @result.nil?
+        old_random     = @random
+        old_generator  = @generator
+        best_score     = @generated.map(&:score).reduce(&:+)
+        best_generated = @generated
+        candidates     = @generated.map(&:shrink_candidates)
+        old_arbitrary  = @arbitrary
 
-      def shrink
+        to_test = candidates.map { |x| x.map { |y| [y] } }.reduce do |c, e|
+          c.flat_map { |a| e.map { |b| a + b } }
+        end
+        run = { run: 0, index: -1 }
+
+        @arbitrary = ->(*classes) do
+          run[:index] += 1
+          raise IndexError if run[:index] >= to_test[run[:run]].length
+
+          a = @generator.for(*classes)
+          a = a.class.force(to_test[run[:run]][run[:index]])
+          @generated << a
+          to_test[run[:run]][run[:index]]
+        end
+
+        while continue? && run[:run] < to_test.length
+          @generated  = []
+          run[:index] = -1
+
+          @generator = ::Minitest::Proptest::Gen.new(@random)
+          unless instance_eval(&@test_proc)
+            if @generated.map(&:score).reduce(&:+) < best_score
+              best_generated = @generated
+              best_score = @generated.map(&:score).reduce(&:+)
+            end
+          end
+
+          @calls    += 1
+          run[:run] += 1
+        end
+        # Clean up after we're done
+        @generated = best_generated
+        @result    = best_generated
+        @generator = old_generator
+        @random    = old_random
+        @arbitrary = old_arbitrary
       end
 
       def continue?
         !@trivial &&
           !@status.invalid? &&
           !@status.overrun? &&
-          @result.nil? &&
           @valid_test_cases < @max_success &&
           @calls < @max_success * @max_discard_ratio
       end
