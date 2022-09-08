@@ -5,16 +5,10 @@ module Minitest
         attr_accessor :entropy
         attr_writer :type_parameters
 
-        def self.force_generation(v)
-          temp = new(ArgumentError)
-          temp.instance_variable_set(:@generated, v)
-          temp.instance_variable_set(:@value, temp.generate_value)
-          temp
-        end
-
-        def self.force(v)
-          temp = new(ArgumentError)
+        def force(v)
+          temp = self.class.new(ArgumentError)
           temp.instance_variable_set(:@value, v)
+          temp.type_parameters = @type_parameters
           temp
         end
 
@@ -53,7 +47,8 @@ module Minitest
         end
 
         def score
-          score_function(@value)
+          fs = @type_parameters.map { |x| x.method(:score_function) }
+          score_function(*fs, value)
         end
 
         def score_function(v)
@@ -61,7 +56,12 @@ module Minitest
         end
 
         def shrink_candidates
-          shrink_function(*@type_parameters, value)
+          fs = @type_parameters.map { |x| x.method(:shrink_function) }
+          candidates = shrink_function(*fs, value)
+          candidates
+            .map  { |c| [force(c).score, c] }
+            .sort { |x, y| x.first <=> y.first }
+            .uniq
         end
 
         def shrink_function(x)
@@ -92,10 +92,6 @@ module Minitest
 
       instance_variable_set(:@_generators, {})
 
-      def self.generate_new(klass)
-        instance_variable_get(:@_generators)[klass]
-      end
-
       def self.create_type_constructor(arity, classes)
         constructor = ->(c1) do
           if classes.length == arity
@@ -114,6 +110,7 @@ module Minitest
           @generator       = f.curry
           @parent_gen      = g
           @value           = nil
+          @type_parameters = []
         end
 
         instance_variable_get(:@_generators)[klass] = new_class.method(:new)
@@ -146,7 +143,7 @@ module Minitest
             end
           end
           gen = generators[classes.first].call(self)
-          gen.type_parameters = cs.map { |x| x.method(:shrink_function) }
+          gen.type_parameters = cs
           gen.prefix_entropy_generation(cs)
           gen
         end
@@ -196,9 +193,6 @@ module Minitest
       end
 
       list_shrink = ->(f, xs) do
-        p f
-        p xs
-        puts
         candidates = []
         n          = xs.length
         k          = n
@@ -308,9 +302,14 @@ module Minitest
         (r & 0xff).chr
       end
 
-      generator_for(Array) do |r|
-        [r]
-      end.with_shrink_function(&list_shrink)
+      generator_for(Array) do |x|
+        [x]
+      end.with_shrink_function(&list_shrink).with_score_function do |f, xs|
+        xs.reduce(1) do |c, x|
+          y = f.call(x)
+          c * (y > 0 ? y + 1 : 1)
+        end.to_i * xs.length
+      end
 
       generator_for(Hash) do |key, value|
         { key => value }

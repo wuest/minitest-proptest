@@ -88,7 +88,7 @@ module Minitest
       private
 
       def iterate!
-        while continue? && (@result.nil? || @valid_test_cases <= @max_success / 2)
+        while continue? && @result.nil? && @valid_test_cases <= @max_success / 2
           @generated = []
           @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
@@ -116,9 +116,11 @@ module Minitest
         candidates     = @generated.map(&:shrink_candidates)
         old_arbitrary  = @arbitrary
 
-        to_test = candidates.map { |x| x.map { |y| [y] } }.reduce do |c, e|
-          c.flat_map { |a| e.map { |b| a + b } }
-        end
+        to_test = candidates
+          .map    { |x| x.map { |y| [y] } }
+          .reduce { |c, e| c.flat_map { |a| e.map { |b| a + b } } }
+          .sort   { |x, y| x.map(&:first).reduce(&:+) <=> y.map(&:first).reduce(&:+) }
+          .uniq
         run = { run: 0, index: -1 }
 
         @arbitrary = ->(*classes) do
@@ -126,9 +128,9 @@ module Minitest
           raise IndexError if run[:index] >= to_test[run[:run]].length
 
           a = @generator.for(*classes)
-          a = a.class.force(to_test[run[:run]][run[:index]])
+          a = a.force(to_test[run[:run]][run[:index]].last)
           @generated << a
-          to_test[run[:run]][run[:index]]
+          to_test[run[:run]][run[:index]].last
         end
 
         while continue? && run[:run] < to_test.length
@@ -136,10 +138,12 @@ module Minitest
           run[:index] = -1
 
           @generator = ::Minitest::Proptest::Gen.new(@random)
-          unless instance_eval(&@test_proc)
-            if @generated.map(&:score).reduce(&:+) < best_score
+          if to_test[run[:run]].map(&:first).reduce(&:+) < best_score
+            unless instance_eval(&@test_proc)
               best_generated = @generated
-              best_score = @generated.map(&:score).reduce(&:+)
+              # Because we pre-sorted our shrink candidates, the first hit is
+              # necessarily the best scoring
+              break
             end
           end
 
