@@ -203,6 +203,33 @@ module Minitest
         candidates + shrink_one.call(f, xs)
       end
 
+      hash_remove = ->(k, n, h) do
+        xs = h.keys
+        xs1 = xs.take(k)
+        xs2 = xs.drop(k)
+
+        if k > n
+          []
+        elsif xs2.empty?
+          [{}]
+        else
+          h1 = xs1.reduce({}) { |c, e| c.merge(h[e]) }
+          h2 = xs2.reduce({}) { |c, e| c.merge(h[e]) }
+          [h1, h2] + list_remove.call(k, (n-k), xs2).map { |ys| h1.merge(ys) }
+        end
+      end
+
+      hash_shrink = ->(fk, fv, h) do
+        candidates = []
+        n          = h.length
+        k          = n
+        while k > 0
+          candidates += hash_remove.call(k, n, h)
+          k /= 2
+        end
+        candidates
+      end
+
       # Use two's complement for all signed integers in order to optimize for
       # random values to shrink towards 0.
       generator_for(Integer, MAX_SIZE + 1) do |r|
@@ -306,13 +333,19 @@ module Minitest
         [x]
       end.with_shrink_function(&list_shrink).with_score_function do |f, xs|
         xs.reduce(1) do |c, x|
-          y = f.call(x)
+          y = f.call(x).abs
           c * (y > 0 ? y + 1 : 1)
         end.to_i * xs.length
       end
 
       generator_for(Hash) do |key, value|
         { key => value }
+      end.with_shrink_function(&hash_shrink).with_score_function do |fk, fv, h|
+        h.reduce(1) do |c, (k, v)|
+          sk = fk.call(k).abs
+          sv = fv.call(v).abs
+          c * ((sk > 0 ? sk + 1 : 1) + (sv > 0 ? sv + 1 : 1))
+        end
       end
     end
   end
