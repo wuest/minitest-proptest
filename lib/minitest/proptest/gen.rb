@@ -5,13 +5,6 @@ module Minitest
         attr_accessor :entropy
         attr_writer :type_parameters
 
-        def force(v)
-          temp = self.class.new(ArgumentError)
-          temp.instance_variable_set(:@value, v)
-          temp.type_parameters = @type_parameters
-          temp
-        end
-
         def self.with_shrink_function(&f)
           define_method(:shrink_function, &f)
           self
@@ -20,6 +13,45 @@ module Minitest
         def self.with_score_function(&f)
           define_method(:score_function, &f)
           self
+        end
+
+        def self.with_append(bound_min, bound_max, &f)
+          define_singleton_method(:bound_max) { bound_max }
+          define_singleton_method(:bound_min) { bound_min }
+          define_method(:append) do |other|
+            @value = f.call(value, other.value)
+            self
+          end
+          self
+        end
+
+        def self.with_empty(&f)
+          define_singleton_method(:empty) do |gen|
+            temp = new(gen)
+            temp.instance_variable_set(:@value, f.call)
+            temp
+          end
+          self
+        end
+
+        def self.bound_max
+          1
+        end
+
+        def self.bound_min
+          0
+        end
+
+        # append is not expected to be called unless overridden
+        def append(other)
+          self
+        end
+
+        def force(v)
+          temp = self.class.new(ArgumentError)
+          temp.instance_variable_set(:@value, v)
+          temp.type_parameters = @type_parameters
+          temp
         end
 
         def generate_value
@@ -47,6 +79,7 @@ module Minitest
         end
 
         def score
+          value
           fs = @type_parameters.map { |x| x.method(:score_function) }
           score_function(*fs, value)
         end
@@ -80,6 +113,13 @@ module Minitest
 
         def one_of(r)
           r.to_array[sized(r.to_array.length)]
+        end
+
+        def recur(count, &f)
+          p self
+          p self.class
+          p self.class.ancestors
+          exit
         end
       end
 
@@ -125,7 +165,7 @@ module Minitest
 
         new_class.define_method(:generator, &f)
 
-        instance_variable_get(:@_generators)[klass] = new_class.method(:new)
+        instance_variable_get(:@_generators)[klass] = new_class #.method(:new)
         self.const_set((klass.name + 'Gen').split('::').last, new_class)
         new_class
       end
@@ -141,23 +181,46 @@ module Minitest
 
       def for(*classes)
         generators = self.class.instance_variable_get(:@_generators)
-        gen = case classes.length
+        case classes.length
         when 0
           raise(TypeError, "A generator for #{classes.join(' ')} is not known.  Try adding it with Gen.generator_for.")
         when 1
-          generators[classes.first].call(self)
+          gen = generators[classes.first]
+          if gen.bound_max > 1
+            c = rand(gen.bound_max - gen.bound_min + 1) + gen.bound_min
+            c.times.reduce(gen.empty(self)) { |g, _| g.append(gen.new(self)) }
+          else
+            gen.new(self)
+          end
         else
-          cs = classes[1..-1].map do |c|
-            if c.is_a?(Array)
-              self.for(*c)
-            else
-              generators[c].call(self)
+          classgen = ->() do
+            classes[1..-1].map do |c|
+              if c.is_a?(Array)
+                self.for(*c)
+              else
+                self.for(c)
+              end
             end
           end
-          gen = generators[classes.first].call(self)
-          gen.type_parameters = cs
-          gen.prefix_entropy_generation(cs)
-          gen
+          cs = classgen.call
+
+          gen = generators[classes.first]
+          typegen = gen.bound_min < 1 ? gen.empty(self) : gen.new(self)
+          typegen.type_parameters = cs
+          typegen.prefix_entropy_generation(cs)
+
+          if gen.bound_max > 1
+            c = rand(gen.bound_max - gen.bound_min + 1) + gen.bound_min
+            c.times.reduce(typegen) do |g, _|
+              cs2 = classgen.call
+              g2 = gen.new(self)
+              g2.type_parameters = cs2
+              g2.prefix_entropy_generation(cs2)
+              g.append(g2)
+            end
+          else
+            typegen
+          end
         end
       end
 
@@ -339,7 +402,9 @@ module Minitest
 
       generator_for(String) do
         sized(0x100).chr
-      end
+      end.with_append(0, 0x40) do |x, y|
+        x + y
+      end.with_empty { "" }
 
       generator_for(Array) do |x|
         [x]
@@ -348,7 +413,9 @@ module Minitest
           y = f.call(x).abs
           c * (y > 0 ? y + 1 : 1)
         end.to_i * xs.length
-      end
+      end.with_append(0, 0x10) do |xs, ys|
+        xs + ys
+      end.with_empty { [] }
 
       generator_for(Hash) do |key, value|
         { key => value }
@@ -358,7 +425,9 @@ module Minitest
           sv = fv.call(v).abs
           c * ((sk > 0 ? sk + 1 : 1) + (sv > 0 ? sv + 1 : 1))
         end
-      end
+      end.with_append(0, 0x10) do |xm, ym|
+        xm.merge(ym)
+      end.with_empty { Hash.new }
     end
   end
 end
