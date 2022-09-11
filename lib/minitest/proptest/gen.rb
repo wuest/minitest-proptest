@@ -29,7 +29,7 @@ module Minitest
           end
 
           while gen.is_a?(Proc) || gen.is_a?(Method)
-            gen = gen.call(@entropy.call())
+            gen = gen.call(*@type_parameters.map(&:value))
             if gen.is_a?(ValueGenerator)
               gen = gen.value
             end
@@ -71,6 +71,16 @@ module Minitest
         def shrink_parameter(x)
           @shrink_parameter.call(x)
         end
+
+        # Generator helpers
+
+        def sized(n)
+          entropy.call(n)
+        end
+
+        def one_of(r)
+          r.to_array[sized(r.to_array.length)]
+        end
       end
 
       class Int8 < Integer; end
@@ -102,16 +112,18 @@ module Minitest
         end
       end
 
-      def self.generator_for(klass, max_size = MAX_SIZE, &f)
+      def self.generator_for(klass, &f)
         new_class = Class.new(ValueGenerator)
-        new_class.define_method(:initialize) do |g, b = max_size|
-          @entropy         = ->() { (@generated << g.rand(b)).last }
+        new_class.define_method(:initialize) do |g|
+          @entropy         = ->(b = MAX_SIZE) { (@generated << g.rand(b)).last }
           @generated       = []
-          @generator       = f.curry
+          @generator       = self.method(:generator).curry
           @parent_gen      = g
           @value           = nil
           @type_parameters = []
         end
+
+        new_class.define_method(:generator, &f)
 
         instance_variable_get(:@_generators)[klass] = new_class.method(:new)
         self.const_set((klass.name + 'Gen').split('::').last, new_class)
@@ -232,8 +244,8 @@ module Minitest
 
       # Use two's complement for all signed integers in order to optimize for
       # random values to shrink towards 0.
-      generator_for(Integer, MAX_SIZE + 1) do |r|
-        r &= MAX_SIZE
+      generator_for(Integer) do
+        r = sized(MAX_SIZE + 1)
         if (r & SIGN_BIT).zero?
           r
         else
@@ -248,24 +260,24 @@ module Minitest
         integral_shrink.call(i)
       end
 
-      generator_for(Int8, 0x100) do |r|
-        r &= 0xff
+      generator_for(Int8) do
+        r = sized(0x100)
         (r & 0x80).zero? ? r : -(((r & 0x7f) - 1) ^ 0x7f)
       end.with_shrink_function do |i|
         i = (i & 0x80).zero? ? i : -(((i & 0x7f) - 1) ^ 0x7f)
         integral_shrink.call(i)
       end
 
-      generator_for(Int16, 0x10000) do |r|
-        r &= 0xffff
+      generator_for(Int16) do
+        r = sized(0x10000)
         (r & 0x8000).zero? ? r : -(((r & 0x7fff) - 1) ^ 0x7fff)
       end.with_shrink_function do |i|
         i = (i & 0x8000).zero? ? r : -(((i & 0x7fff) - 1) ^ 0x7fff)
         integral_shrink.call(i)
       end
 
-      generator_for(Int32, 0x100000000) do |r|
-        r &= 0xffffffff
+      generator_for(Int32) do
+        r = sized(0x100000000)
         (r & 0x80000000).zero? ? r : -(((r & 0x7fffffff) - 1) ^ 0x7fffffff)
       end.with_shrink_function do |i|
         i = if (i & 0x80000000).zero?
@@ -276,8 +288,8 @@ module Minitest
         integral_shrink.call(i)
       end
 
-      generator_for(Int64, 0x10000000000000000) do |r|
-        r &= 0xffffffffffffffff
+      generator_for(Int64) do
+        r = sized(0x10000000000000000)
         if (r & 0x8000000000000000).zero?
           r
         else
@@ -292,24 +304,24 @@ module Minitest
         integral_shrink.call(i)
       end
 
-      generator_for(UInt8, 0x100) do |r|
-        r & 0xff
+      generator_for(UInt8) do
+        sized(0x100)
       end.with_shrink_function(&integral_shrink)
 
-      generator_for(UInt16, 0x10000) do |r|
-        r & 0xffff
+      generator_for(UInt16) do
+        sized(0x10000)
       end.with_shrink_function(&integral_shrink)
 
-      generator_for(UInt32, 0x100000000) do |r|
-        r & 0xffffffff
+      generator_for(UInt32) do
+        sized(0x100000000)
       end.with_shrink_function(&integral_shrink)
 
-      generator_for(UInt64, 0x10000000000000000) do |r|
-        r & 0xffffffffffffffff
+      generator_for(UInt64) do
+        sized(0x10000000000000000)
       end.with_shrink_function(&integral_shrink)
 
-      generator_for(ASCIIChar, 0x80) do |r|
-        (r & 0x7f).chr
+      generator_for(ASCIIChar) do
+        sized(0x80).chr
       end.with_shrink_function do |c|
         integral_shrink.call(c.ord).abs
       end.with_score_function do |c|
@@ -317,16 +329,16 @@ module Minitest
       end
 
 
-      generator_for(Char, 0x100) do |r|
-        (r & 0xff).chr
+      generator_for(Char) do
+        sized(0x100).chr
       end.with_shrink_function do |c|
         integral_shrink.call(c.ord).abs
       end.with_score_function do |c|
         c.ord
       end
 
-      generator_for(String, 0x100) do |r|
-        (r & 0xff).chr
+      generator_for(String) do
+        sized(0x100).chr
       end
 
       generator_for(Array) do |x|
