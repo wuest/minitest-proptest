@@ -261,7 +261,7 @@ module Minitest
       end
 
       list_shrink = ->(f, xs) do
-        candidates = []
+        candidates = [[]]
         n          = xs.length
         k          = n
         while k > 0
@@ -383,7 +383,6 @@ module Minitest
       end.with_score_function do |c|
         c.ord
       end
-
 
       generator_for(Char) do
         sized(0x100).chr
