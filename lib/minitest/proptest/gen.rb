@@ -114,13 +114,6 @@ module Minitest
         def one_of(r)
           r.to_array[sized(r.to_array.length)]
         end
-
-        def recur(count, &f)
-          p self
-          p self.class
-          p self.class.ancestors
-          exit
-        end
       end
 
       class Int8 < Integer; end
@@ -402,7 +395,15 @@ module Minitest
 
       generator_for(String) do
         sized(0x100).chr
-      end.with_append(0, 0x40) do |x, y|
+      end.with_shrink_function do |s|
+        xs = list_shrink.call(integral_shrink, s.chars.map(&:ord))
+        xs.map { |str| str.map { |t| t & 0xff }.map(&:chr).join }
+      end.with_score_function do |s|
+        s.chars.map(&:ord).reduce(1) do |c, x|
+          y = x.abs
+          c * (y > 0 ? y + 1 : 1)
+        end
+      end.with_append(0, 0x20) do |x, y|
         x + y
       end.with_empty { "" }
 
