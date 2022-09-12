@@ -88,7 +88,7 @@ module Minitest
       private
 
       def iterate!
-        while continue? && @result.nil? && @valid_test_cases <= @max_success / 2
+        while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success / 2
           @generated = []
           @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
@@ -133,7 +133,7 @@ module Minitest
           to_test[run[:run]][run[:index]].last
         end
 
-        while continue? && run[:run] < to_test.length
+        while continue_shrink? && run[:run] < to_test.length
           @generated  = []
           run[:index] = -1
 
@@ -158,12 +158,19 @@ module Minitest
         @arbitrary = old_arbitrary
       end
 
-      def continue?
+      def continue_iterate?
         !@trivial &&
           !@status.invalid? &&
           !@status.overrun? &&
           @valid_test_cases < @max_success &&
           @calls < @max_success * @max_discard_ratio
+      end
+
+      def continue_shrink?
+        !@trivial &&
+          !@status.invalid? &&
+          !@status.overrun?
+          @calls < @max_shrinks
       end
     end
   end

@@ -31,7 +31,7 @@ module Minitest
       @_max_size = 0x100
       # Maximum number of shrink attempts (default of half of max unsigned int
       # on the system architecture adopted from QuickCheck)
-      @_max_shrinks = (((1 << (1.size * 8)) - 1) / 2).to_s(16)
+      @_max_shrinks = (((1 << (1.size * 8)) - 1) / 2)
 
       super
     end
