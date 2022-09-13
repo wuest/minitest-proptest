@@ -6,7 +6,11 @@ require 'minitest/proptest/status'
 
 module Minitest
   def self.plugin_proptest_init(_options)
-    %i[Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64 ASCIIChar Char].each do |const|
+    %i[Int8 Int16 Int32 Int64
+       UInt8 UInt16 UInt32 UInt64
+       ASCIIChar Char
+       Bool
+      ].each do |const|
       unless Minitest::Assertions.const_defined?(const)
         Minitest::Assertions.const_set(const, ::Minitest::Proptest::Gen.const_get(const))
       end

@@ -71,6 +71,7 @@ module Minitest
         end
 
         def value
+          return false if @value == false
           @value ||= generate_value
         end
 
@@ -128,6 +129,7 @@ module Minitest
       class UInt64 < Integer; end
       class ASCIIChar < String; end
       class Char < String; end
+      class Bool < TrueClass; end
 
       # Default maximum random value size is the local architecture's word size
       MAX_SIZE = ((1 << (1.size * 8)) - 1)
@@ -369,20 +371,17 @@ module Minitest
         integral_shrink.call(i).reject(&:negative?)
       end
 
-
       generator_for(UInt16) do
         sized(0xffff)
       end.with_shrink_function do |i|
         integral_shrink.call(i).reject(&:negative?)
       end
 
-
       generator_for(UInt32) do
         sized(0xffffffff)
       end.with_shrink_function do |i|
         integral_shrink.call(i).reject(&:negative?)
       end
-
 
       generator_for(UInt64) do
         sized(0xffffffffffffffff)
@@ -442,6 +441,12 @@ module Minitest
       end.with_append(0, 0x10) do |xm, ym|
         xm.merge(ym)
       end.with_empty { Hash.new }
+
+      generator_for(Bool) do
+        sized(0x1).even? ? false : true
+      end.with_score_function do |_|
+        1
+      end
     end
   end
 end

@@ -216,4 +216,17 @@ class PropertyTest < Minitest::Test
       end
     end
   end
+
+  def test_shrink_bool
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Bool)
+    property do
+      b = arbitrary Bool
+      g = gen.force(b)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, l|
+        score == 1
+      end
+    end
+  end
 end
