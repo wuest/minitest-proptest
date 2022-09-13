@@ -1,5 +1,5 @@
 module Minitest
-  class Proptest < Minitest::Test
+  module Proptest
     class Property
 
       attr_reader :result, :status, :trivial
@@ -9,7 +9,7 @@ module Minitest
         # Any class which provides `rand` accepting both an Integer and a Range
         # is acceptable.  The default value is Ruby's standard Mersenne Twister
         # implementation.
-        random: Random.new,
+        random: Random.method(:new),
         # Maximum number of successful cases before considering the test a
         # success.
         max_success: 100,
@@ -22,7 +22,7 @@ module Minitest
         max_shrinks: 0x7fffffffffffffff
       )
         @test_proc         = test_proc
-        @random            = random
+        @random            = random.call
         @generator         = ::Minitest::Proptest::Gen.new(@random)
         @max_success       = max_success
         @max_discard_ratio = max_discard_ratio

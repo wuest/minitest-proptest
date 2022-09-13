@@ -1,5 +1,5 @@
 module Minitest
-  class Proptest < Minitest::Test
+  module Proptest
     class Gen
       class ValueGenerator
         attr_accessor :entropy

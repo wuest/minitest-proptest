@@ -1,5 +1,5 @@
 module Minitest
-  class Proptest < Minitest::Test
+  module Proptest
     # Sum type representing the possible statuses of a test run.
     # Invalid, Overrun, and Interesting represent different failure classes.
     # Unknown represents a lack of information about the test run (typically
