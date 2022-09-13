@@ -90,10 +90,12 @@ module Minitest
 
         def shrink_candidates
           fs = @type_parameters.map { |x| x.method(:shrink_function) }
+          os = score
           candidates = shrink_function(*fs, value)
           candidates
-            .map  { |c| [force(c).score, c] }
-            .sort { |x, y| x.first <=> y.first }
+            .map    { |c| [force(c).score, c] }
+            .reject { |(s, _)| s > os }
+            .sort   { |x, y| x.first <=> y.first }
             .uniq
         end
 
@@ -108,11 +110,11 @@ module Minitest
         # Generator helpers
 
         def sized(n)
-          entropy.call(n)
+          entropy.call(n + 1)
         end
 
         def one_of(r)
-          r.to_array[sized(r.to_array.length)]
+          r.to_array[sized(r.to_array.length - 1)]
         end
       end
 
@@ -221,7 +223,6 @@ module Minitest
       # etc.
       integral_shrink = ->(x) do
         candidates = []
-        candidates << -x if x < 0 && -x > x
         y = x
 
         until y == 0
@@ -231,7 +232,9 @@ module Minitest
           y = (y / 2.0).to_i
         end
 
-        candidates.flat_map { |x| [x - 1, x, x + 1] }
+        candidates
+          .flat_map { |i| [i - 1, i, i + 1] }
+          .reject   { |i| i.abs >= x.abs }
       end
 
       # List shrink adapted from QuickCheck
@@ -281,9 +284,9 @@ module Minitest
         elsif xs2.empty?
           [{}]
         else
-          h1 = xs1.reduce({}) { |c, e| c.merge(h[e]) }
-          h2 = xs2.reduce({}) { |c, e| c.merge(h[e]) }
-          [h1, h2] + list_remove.call(k, (n-k), xs2).map { |ys| h1.merge(ys) }
+          h1 = xs1.reduce({}) { |c, e| c.merge({ e => h[e] }) }
+          h2 = xs2.reduce({}) { |c, e| c.merge({ e => h[e] }) }
+          [h1, h2] + list_remove.call(k, (n-k), h2).map { |ys| h1.merge(ys.to_h) }
         end
       end
 
@@ -301,7 +304,7 @@ module Minitest
       # Use two's complement for all signed integers in order to optimize for
       # random values to shrink towards 0.
       generator_for(Integer) do
-        r = sized(MAX_SIZE + 1)
+        r = sized(MAX_SIZE)
         if (r & SIGN_BIT).zero?
           r
         else
@@ -317,7 +320,7 @@ module Minitest
       end
 
       generator_for(Int8) do
-        r = sized(0x100)
+        r = sized(0xff)
         (r & 0x80).zero? ? r : -(((r & 0x7f) - 1) ^ 0x7f)
       end.with_shrink_function do |i|
         i = (i & 0x80).zero? ? i : -(((i & 0x7f) - 1) ^ 0x7f)
@@ -325,15 +328,15 @@ module Minitest
       end
 
       generator_for(Int16) do
-        r = sized(0x10000)
+        r = sized(0xffff)
         (r & 0x8000).zero? ? r : -(((r & 0x7fff) - 1) ^ 0x7fff)
       end.with_shrink_function do |i|
-        i = (i & 0x8000).zero? ? r : -(((i & 0x7fff) - 1) ^ 0x7fff)
+        i = (i & 0x8000).zero? ? i : -(((i & 0x7fff) - 1) ^ 0x7fff)
         integral_shrink.call(i)
       end
 
       generator_for(Int32) do
-        r = sized(0x100000000)
+        r = sized(0xffffffff)
         (r & 0x80000000).zero? ? r : -(((r & 0x7fffffff) - 1) ^ 0x7fffffff)
       end.with_shrink_function do |i|
         i = if (i & 0x80000000).zero?
@@ -345,7 +348,7 @@ module Minitest
       end
 
       generator_for(Int64) do
-        r = sized(0x10000000000000000)
+        r = sized(0xffffffffffffffff)
         if (r & 0x8000000000000000).zero?
           r
         else
@@ -361,39 +364,50 @@ module Minitest
       end
 
       generator_for(UInt8) do
-        sized(0x100)
-      end.with_shrink_function(&integral_shrink)
+        sized(0xff)
+      end.with_shrink_function do |i|
+        integral_shrink.call(i).reject(&:negative?)
+      end
+
 
       generator_for(UInt16) do
-        sized(0x10000)
-      end.with_shrink_function(&integral_shrink)
+        sized(0xffff)
+      end.with_shrink_function do |i|
+        integral_shrink.call(i).reject(&:negative?)
+      end
+
 
       generator_for(UInt32) do
-        sized(0x100000000)
-      end.with_shrink_function(&integral_shrink)
+        sized(0xffffffff)
+      end.with_shrink_function do |i|
+        integral_shrink.call(i).reject(&:negative?)
+      end
+
 
       generator_for(UInt64) do
-        sized(0x10000000000000000)
-      end.with_shrink_function(&integral_shrink)
+        sized(0xffffffffffffffff)
+      end.with_shrink_function do |i|
+        integral_shrink.call(i).reject(&:negative?)
+      end
 
       generator_for(ASCIIChar) do
-        sized(0x80).chr
+        sized(0x7f).chr
       end.with_shrink_function do |c|
-        integral_shrink.call(c.ord).abs
+        integral_shrink.call(c.ord).reject(&:negative?).map(&:chr)
       end.with_score_function do |c|
         c.ord
       end
 
       generator_for(Char) do
-        sized(0x100).chr
+        sized(0xff).chr
       end.with_shrink_function do |c|
-        integral_shrink.call(c.ord).abs
+        integral_shrink.call(c.ord).reject(&:negative?).map(&:chr)
       end.with_score_function do |c|
         c.ord
       end
 
       generator_for(String) do
-        sized(0x100).chr
+        sized(0xff).chr
       end.with_shrink_function do |s|
         xs = list_shrink.call(integral_shrink, s.chars.map(&:ord))
         xs.map { |str| str.map { |t| t & 0xff }.map(&:chr).join }
