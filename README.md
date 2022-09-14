@@ -1,6 +1,6 @@
 # Property Testing in Minitest
 
-minitest-proptest allows tests to be expressed in terms of universal properties,
+Minitest-Proptest allows tests to be expressed in terms of universal properties,
 and will generate test cases to try to disprove them the cases listed
 automatically.  This library is heavily inspired by
 [QuickCheck][intro-1:quickcheck] and [Hypothesis][intro-2:hypothesis].
@@ -53,7 +53,7 @@ counter-examples when they're found.
 
 ## Built-in Types
 
-The following types are provided by `minitest-proptest`:
+The following types are provided by Minitest-Proptest:
 
 * Unbounded `Integer`
 * Unsigned Integers
@@ -207,7 +207,7 @@ Additional examples of generators are available in
 
 ## Requirements
 
-`minitest-proptest` is designed to work with Minitest 5.0 or greater.  Non-EOL
+Minitest-Proptest is designed to work with Minitest 5.0 or greater.  Non-EOL
 Rubies are tested to work; older rubies may work as well.
 
 ## License
