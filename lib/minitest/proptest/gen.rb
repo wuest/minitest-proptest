@@ -47,6 +47,10 @@ module Minitest
           self
         end
 
+        def self.empty(gen)
+          self.new(gen)
+        end
+
         def force(v)
           temp = self.class.new(ArgumentError)
           temp.instance_variable_set(:@value, v)
@@ -115,7 +119,7 @@ module Minitest
         end
 
         def one_of(r)
-          r.to_array[sized(r.to_array.length - 1)]
+          r.to_a[sized(r.to_a.length - 1)]
         end
       end
 
@@ -127,6 +131,8 @@ module Minitest
       class UInt16 < Integer; end
       class UInt32 < Integer; end
       class UInt64 < Integer; end
+      class Float32 < Float; end
+      class Float64 < Float; end
       class ASCIIChar < String; end
       class Char < String; end
       class Bool < TrueClass; end
@@ -231,6 +237,20 @@ module Minitest
           candidates << (x - y)
           candidates << y
           # Prevent negative integral from preventing termination
+          y = (y / 2.0).to_i
+        end
+
+        candidates
+          .flat_map { |i| [i - 1, i, i + 1] }
+          .reject   { |i| i.abs >= x.abs }
+      end
+
+      float_shrink = ->(x) do
+        candidates = [Float::NAN, Float::INFINITY]
+        y = x
+
+        until y == 0 || y
+          candidates << (x - y)
           y = (y / 2.0).to_i
         end
 
@@ -387,6 +407,59 @@ module Minitest
         sized(0xffffffffffffffff)
       end.with_shrink_function do |i|
         integral_shrink.call(i).reject(&:negative?)
+      end
+
+      generator_for(Float32) do
+        # There is most likely a faster way to do this which doesn't involve
+        # FFI, but it was faster than manual bit twiddling in ruby
+        bits = sized(0xffffffff)
+        (0..3)
+          .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
+          .join
+          .unpack('f')
+          .first
+      end.with_shrink_function do |f|
+        float_shrink.call(f)
+      end.with_score_function do |f|
+        if f.nan? || f.infinite?
+          0
+        else
+          f.abs.ceil
+        end
+      end
+
+      generator_for(Float64) do
+        bits = sized(0xffffffffffffffff)
+        (0..7)
+          .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
+          .join
+          .unpack('d')
+          .first
+      end.with_shrink_function do |f|
+        float_shrink.call(f)
+      end.with_score_function do |f|
+        if f.nan? || f.infinite?
+          0
+        else
+          f.abs.ceil
+        end
+      end
+
+      generator_for(Float) do
+        bits = sized(0xffffffffffffffff)
+        (0..7)
+          .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
+          .join
+          .unpack('d')
+          .first
+      end.with_shrink_function do |f|
+        float_shrink.call(f)
+      end.with_score_function do |f|
+        if f.nan? || f.infinite?
+          0
+        else
+          f.abs.ceil
+        end
       end
 
       generator_for(ASCIIChar) do
