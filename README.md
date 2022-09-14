@@ -222,5 +222,5 @@ The Minitest-Proptest project is governed by a
 [intro-1:quickcheck]: https://hackage.haskell.org/package/QuickCheck
 [intro-2:hypothesis]: https://github.com/HypothesisWorks/hypothesis
 [generators-1:gen.rb]: https://github.com/wuest/minitest-proptest/blob/main/lib/minitest/proptest/gen.rb
-[license-1:MIT]: https://github.com/wuest/minitest-proptest/blob/main/lib/minitest/proptest/gen.rb
-[code-of-conduct]: https://github.com/wuest/minitest-proptest/blob/main/lib/minitest/proptest/gen.rb
+[license-1:MIT]: https://github.com/wuest/minitest-proptest/blob/main/LICENSE
+[code-of-conduct]: https://github.com/wuest/minitest-proptest/blob/main/CODE_OF_CONDUCT.md
