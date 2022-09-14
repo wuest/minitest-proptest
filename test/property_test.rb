@@ -145,6 +145,54 @@ class PropertyTest < Minitest::Test
     end
   end
 
+  def test_shrink_float32
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Float32)
+    property do
+      n = arbitrary Float32
+      g = gen.force(n)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, x|
+        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
+                                    x.abs < n.abs &&
+                                    n.negative? ? x <= 1 : x >= -1
+                                   )
+      end
+    end
+  end
+
+  def test_shrink_float64
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Float64)
+    property do
+      n = arbitrary Float64
+      g = gen.force(n)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, x|
+        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
+                                    x.abs < n.abs &&
+                                    n.negative? ? x <= 1 : x >= -1
+                                   )
+      end
+    end
+  end
+
+  def test_shrink_float
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Float)
+    property do
+      n = arbitrary Float
+      g = gen.force(n)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, x|
+        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
+                                    x.abs < n.abs &&
+                                    n.negative? ? x <= 1 : x >= -1
+                                   )
+      end
+    end
+  end
+
   def test_shrink_string
     gen = ::Minitest::Proptest::Gen.new(Random.new).for(String)
     property do
