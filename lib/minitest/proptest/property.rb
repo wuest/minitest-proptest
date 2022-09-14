@@ -69,9 +69,9 @@ module Minitest
                elsif @status.unknown?
                  "The property has not yet been tested."
                elsif @status.interesting?
-                 "The property has found a counterexample after " +
-                   "#{@valid_test_cases} valid examples.  The minimal " +
-                   "counterexample consists of:\n" +
+                 "The property has found the following counterexample after " +
+                   "#{@valid_test_cases} valid " +
+                   "example#{@valid_test_cases == 1 ? '' : 's'}:\n" +
                    @generated.map(&:value).inspect
                end
         trivial = if @trivial
