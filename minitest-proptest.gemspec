@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.metadata['source_code_uri'] = s.homepage
   s.metadata['changelog_uri'] = 'https://github.com/wuest/minitest-proptest/blob/main/CHANGELOG.md'
 
-  s.files = `git ls-files ext`.split("\n")
+  s.files = `git ls-files lib`.split("\n")
 
   s.add_dependency 'minitest', '~> 5'
 end
