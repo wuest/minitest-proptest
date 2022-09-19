@@ -1,3 +1,7 @@
+[![Version](https://img.shields.io/gem/v/minitest-proptest)][badges:0-gem]
+[![Build](https://img.shields.io/github/workflow/status/wuest/minitest-proptest/CI)][badges:1-CI]
+[![License](https://img.shields.io/github/license/wuest/minitest-proptest)][badges:2-license]
+
 # Property Testing in Minitest
 
 Minitest-Proptest allows tests to be expressed in terms of universal properties,
@@ -214,13 +218,33 @@ Rubies are tested to work; older rubies may work as well.
 
 Minitest-Proptest is released under the [MIT License][license-1:MIT]
 
+## Contributions
+
+Whether the contribution concerns code, documentation, bug reports, or something
+else entirely, contributions are welcome and appreciated!
+
+If the contribution is relating to a security concern, please see
+[SECURITY.md][SECURITY].
+
+For all other contributions, please see
+[CONTRIBUTING.md][CONTRIBUTING].  In short:
+
+  * Fork the project.
+  * Add tests for any new functionality/to verify that bugs have been fixed.
+  * Send a merge request on GitHub.
+
 ## Code of Conduct
 
 The Minitest-Proptest project is governed by a
 [Code of Conduct][code-of-conduct].
 
+[badges:0-gem]: https://rubygems.org/gems/minitest-proptest
+[badges:1-CI]: https://github.com/wuest/minitest-proptest/actions/workflows/ci.yaml
+[badges:2-license]: https://github.com/wuest/minitest-proptest/blob/main/LICENSE
 [intro-1:quickcheck]: https://hackage.haskell.org/package/QuickCheck
 [intro-2:hypothesis]: https://github.com/HypothesisWorks/hypothesis
 [generators-1:gen.rb]: https://github.com/wuest/minitest-proptest/blob/main/lib/minitest/proptest/gen.rb
 [license-1:MIT]: https://github.com/wuest/minitest-proptest/blob/main/LICENSE
+[SECURITY]: https://github.com/wuest/minitest-proptest/blob/main/SECURITY.md
+[CONTRIBUTING]: https://github.com/wuest/minitest-proptest/blob/main/CONTRIBUTING.md
 [code-of-conduct]: https://github.com/wuest/minitest-proptest/blob/main/CODE_OF_CONDUCT.md
