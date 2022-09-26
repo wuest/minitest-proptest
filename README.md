@@ -231,7 +231,7 @@ For all other contributions, please see
 
   * Fork the project.
   * Add tests for any new functionality/to verify that bugs have been fixed.
-  * Send a merge request on GitHub.
+  * Send a pull request on GitHub.
 
 ## Code of Conduct
 
