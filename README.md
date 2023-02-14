@@ -1,5 +1,5 @@
 [![Version](https://img.shields.io/gem/v/minitest-proptest)][badges:0-gem]
-[![Build](https://img.shields.io/github/workflow/status/wuest/minitest-proptest/CI)][badges:1-CI]
+[![Build](https://img.shields.io/github/actions/workflow/status/wuest/minitest-proptest/ci.yaml?branch=main)][badges:1-CI]
 [![License](https://img.shields.io/github/license/wuest/minitest-proptest)][badges:2-license]
 
 # Property Testing in Minitest
