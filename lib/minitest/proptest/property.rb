@@ -104,7 +104,6 @@ module Minitest
       rescue => e
         @status = Status.invalid
         @exception = e
-        raise e
       end
 
       def shrink!
