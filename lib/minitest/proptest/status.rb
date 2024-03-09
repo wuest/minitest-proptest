@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Minitest
   module Proptest
     # Sum type representing the possible statuses of a test run.

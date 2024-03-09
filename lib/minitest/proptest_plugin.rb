@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'minitest'
 require 'minitest/proptest'
 require 'minitest/proptest/gen'
@@ -21,6 +23,9 @@ module Minitest
     if options.has_key?(:seed)
       Proptest.set_seed(options[:seed])
     end
+  end
+
+  def self.plugin_proptest_options(opts, options)
   end
 
   module Assertions

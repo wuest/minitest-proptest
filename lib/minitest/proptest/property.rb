@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Minitest
   module Proptest
     class Property
@@ -108,6 +110,7 @@ module Minitest
 
       def shrink!
         return if @result.nil?
+
         old_random     = @random
         old_generator  = @generator
         best_score     = @generated.map(&:score).reduce(&:+)

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Minitest
   module Proptest
     class Gen
@@ -76,6 +78,7 @@ module Minitest
 
         def value
           return false if @value == false
+
           @value ||= generate_value
         end
 
