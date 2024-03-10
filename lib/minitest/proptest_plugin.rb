@@ -20,13 +20,10 @@ module Minitest
       end
     end
 
-    if options.has_key?(:seed)
-      Proptest.set_seed(options[:seed])
-    end
+    Proptest.set_seed(options[:seed]) if options.key?(:seed)
   end
 
-  def self.plugin_proptest_options(opts, options)
-  end
+  def self.plugin_proptest_options(opts, options); end
 
   module Assertions
     def property(&f)
@@ -49,9 +46,7 @@ module Minitest
       )
       prop.run!
 
-      unless prop.status.valid? && !prop.trivial
-        raise Minitest::Assertion, prop.explain
-      end
+      raise Minitest::Assertion, prop.explain unless prop.status.valid? && !prop.trivial
     end
   end
 end

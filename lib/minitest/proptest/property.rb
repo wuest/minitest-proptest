@@ -2,9 +2,10 @@
 
 module Minitest
   module Proptest
+    # Property evaluation - status, scoring, shrinking
     class Property
-
       attr_reader :result, :status, :trivial
+
       def initialize(
         # The function which proves the property
         test_proc,
@@ -58,31 +59,31 @@ module Minitest
 
       def explain
         prop = if @status.valid?
-                 "The property was proved to satsfaction across " +
+                 'The property was proved to satsfaction across ' \
                    "#{@valid_test_cases} assertions."
                elsif @status.invalid?
-                 "The property was determined to be invalid due to " +
-                   "#{@exception.class.name}: #{@exception.message}\n" +
-                   @exception.backtrace.map { |l| "    #{l}" }.join("\n")
+                 'The property was determined to be invalid due to ' \
+                   "#{@exception.class.name}: #{@exception.message}\n" \
+                   "#{@exception.backtrace.map { |l| "    #{l}" }.join("\n")}"
                elsif @status.overrun?
-                 "The property attempted to generate more than #{@max_size} " +
-                   "bytes of entropy, violating the property's maximum size." +
-                   "This might be rectified by increasing max_size."
+                 "The property attempted to generate more than #{@max_size} " \
+                   "bytes of entropy, violating the property's maximum " \
+                   'size.  This might be rectified by increasing max_size.'
                elsif @status.unknown?
-                 "The property has not yet been tested."
+                 'The property has not yet been tested.'
                elsif @status.interesting?
-                 "The property has found the following counterexample after " +
-                   "#{@valid_test_cases} valid " +
-                   "example#{@valid_test_cases == 1 ? '' : 's'}:\n" +
-                   @generated.map(&:value).inspect
+                 'The property has found the following counterexample after ' \
+                   "#{@valid_test_cases} valid " \
+                   "example#{@valid_test_cases == 1 ? '' : 's'}:\n" \
+                   "#{@generated.map(&:value).inspect}"
                end
         trivial = if @trivial
-                    "\nThe test does not appear to use any generated values " +
-                      "and as such is likely not generating much value.  " +
-                      "Consider reworking this test to make use of arbitrary " +
-                      "data."
+                    "\nThe test does not appear to use any generated values " \
+                      'and as such is likely not generating much value.  ' \
+                      'Consider reworking this test to make use of arbitrary ' \
+                      'data.'
                   else
-                    ""
+                    ''
                   end
         prop + trivial
       end
@@ -119,10 +120,10 @@ module Minitest
         old_arbitrary  = @arbitrary
 
         to_test = candidates
-          .map    { |x| x.map { |y| [y] } }
-          .reduce { |c, e| c.flat_map { |a| e.map { |b| a + b } } }
-          .sort   { |x, y| x.map(&:first).reduce(&:+) <=> y.map(&:first).reduce(&:+) }
-          .uniq
+                  .map    { |x| x.map { |y| [y] } }
+                  .reduce { |c, e| c.flat_map { |a| e.map { |b| a + b } } }
+                  .sort   { |x, y| x.map(&:first).reduce(&:+) <=> y.map(&:first).reduce(&:+) }
+                  .uniq
         run = { run: 0, index: -1 }
 
         @arbitrary = ->(*classes) do
@@ -171,7 +172,7 @@ module Minitest
       def continue_shrink?
         !@trivial &&
           !@status.invalid? &&
-          !@status.overrun?
+          !@status.overrun? &&
           @calls < @max_shrinks
       end
     end

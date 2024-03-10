@@ -14,7 +14,7 @@ class PropertyTest < Minitest::Test
         x.abs < n.abs &&
           score == x.abs &&
           x <= 0x7f && x >= -0x80 &&
-          n.negative? ? x <= 1 : x >= -1
+          ( n < 0 ? x <= 1 : x >= -1 )
       end
     end
   end
@@ -30,7 +30,7 @@ class PropertyTest < Minitest::Test
         x.abs < n.abs &&
           score == x.abs &&
           x <= 0x7fff && x >= -0x8000 &&
-          n.negative? ? x <= 1 : x >= -1
+          ( n < 0 ? x <= 1 : x >= -1 )
       end
     end
   end
@@ -46,7 +46,7 @@ class PropertyTest < Minitest::Test
         x.abs < n.abs &&
           score == x.abs &&
           x <= 0x7fffffff && x >= -0x80000000 &&
-          n.negative? ? x <= 1 : x >= -1
+          ( n < 0 ? x <= 1 : x >= -1 )
       end
     end
   end
@@ -62,7 +62,7 @@ class PropertyTest < Minitest::Test
         x.abs < n.abs &&
           score == x.abs &&
           x <= 0x7fffffffffffffff && x >= -0x8000000000000000 &&
-          n.negative? ? x <= 1 : x >= -1
+          ( n < 0 ? x <= 1 : x >= -1 )
       end
     end
   end
@@ -78,7 +78,7 @@ class PropertyTest < Minitest::Test
         x.abs < n.abs &&
           score == x.abs &&
           x <= 0x7fffffffffffffff && x >= -0x8000000000000000 &&
-          n.negative? ? x <= 1 : x >= -1
+          ( n < 0 ? x <= 1 : x >= -1 )
       end
     end
   end
@@ -156,8 +156,8 @@ class PropertyTest < Minitest::Test
 
       candidates.all? do |score, x|
         (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                    x.abs < n.abs &&
-                                    n.negative? ? x <= 1 : x >= -1
+                                       x.abs < n.abs &&
+                                       ( n < 0 ? x <= 1 : x >= -1 )
                                    )
       end
     end
@@ -172,8 +172,8 @@ class PropertyTest < Minitest::Test
 
       candidates.all? do |score, x|
         (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                    x.abs < n.abs &&
-                                    n.negative? ? x <= 1 : x >= -1
+                                       x.abs < n.abs &&
+                                       ( n < 0 ? x <= 1 : x >= -1 )
                                    )
       end
     end
@@ -188,8 +188,8 @@ class PropertyTest < Minitest::Test
 
       candidates.all? do |score, x|
         (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                    x.abs < n.abs &&
-                                    n.negative? ? x <= 1 : x >= -1
+                                       x.abs < n.abs &&
+                                       ( n < 0 ? x <= 1 : x >= -1 )
                                    )
       end
     end
@@ -274,7 +274,7 @@ class PropertyTest < Minitest::Test
       g = gen.force(b)
       candidates = g.shrink_candidates
 
-      candidates.all? do |score, l|
+      candidates.all? do |score, _l|
         score == 1
       end
     end

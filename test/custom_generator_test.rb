@@ -18,9 +18,7 @@ class CustomGeneratorTest < Minitest::Test
     end
 
     candidates
-  end.with_score_function do |i|
-    i.value
-  end
+  end.with_score_function(&:value)
 
   Dice = Struct.new(:value) do
     def +(other)
@@ -50,7 +48,6 @@ class CustomGeneratorTest < Minitest::Test
   end.with_score_function do |ffst, fsnd, t|
     ffst.call(t.fst) + fsnd.call(t.snd)
   end
-
 
   def test_boxed_uint8
     property do

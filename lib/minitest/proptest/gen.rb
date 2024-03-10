@@ -1,131 +1,12 @@
 # frozen_string_literal: true
 
+require 'minitest/proptest/gen/value_generator'
+
 module Minitest
   module Proptest
+    # Generic value generation and shrinking implementations, and
+    # support for built-in types.
     class Gen
-      class ValueGenerator
-        attr_accessor :entropy
-        attr_writer :type_parameters
-
-        def self.with_shrink_function(&f)
-          define_method(:shrink_function, &f)
-          self
-        end
-
-        def self.with_score_function(&f)
-          define_method(:score_function, &f)
-          self
-        end
-
-        def self.with_append(bound_min, bound_max, &f)
-          define_singleton_method(:bound_max) { bound_max }
-          define_singleton_method(:bound_min) { bound_min }
-          define_method(:append) do |other|
-            @value = f.call(value, other.value)
-            self
-          end
-          self
-        end
-
-        def self.with_empty(&f)
-          define_singleton_method(:empty) do |gen|
-            temp = new(gen)
-            temp.instance_variable_set(:@value, f.call)
-            temp
-          end
-          self
-        end
-
-        def self.bound_max
-          1
-        end
-
-        def self.bound_min
-          0
-        end
-
-        # append is not expected to be called unless overridden
-        def append(other)
-          self
-        end
-
-        def self.empty(gen)
-          self.new(gen)
-        end
-
-        def force(v)
-          temp = self.class.new(ArgumentError)
-          temp.instance_variable_set(:@value, v)
-          temp.type_parameters = @type_parameters
-          temp
-        end
-
-        def generate_value
-          gen = @generated.reduce(@generator) do |gen, val|
-            gen.call(val)
-            gen
-          end
-
-          while gen.is_a?(Proc) || gen.is_a?(Method)
-            gen = gen.call(*@type_parameters.map(&:value))
-            if gen.is_a?(ValueGenerator)
-              gen = gen.value
-            end
-          end
-
-          gen
-        end
-
-        def value
-          return false if @value == false
-
-          @value ||= generate_value
-        end
-
-        def prefix_entropy_generation(vals)
-          @generated = vals + @generated
-        end
-
-        def score
-          value
-          fs = @type_parameters.map { |x| x.method(:score_function) }
-          score_function(*fs, value)
-        end
-
-        def score_function(v)
-          v.to_i.abs
-        end
-
-        def shrink_candidates
-          fs = @type_parameters.map { |x| x.method(:shrink_function) }
-          os = score
-          candidates = shrink_function(*fs, value)
-          candidates
-            .map    { |c| [force(c).score, c] }
-            .reject { |(s, _)| s > os }
-            .sort   { |x, y| x.first <=> y.first }
-            .uniq
-        end
-
-        def shrink_function(x)
-          [x.itself]
-        end
-
-        def shrink_parameter(x)
-          @shrink_parameter.call(x)
-        end
-
-        # Generator helpers
-
-        def sized(n)
-          entropy.call(n + 1)
-        end
-
-        def one_of(r)
-          r.to_a[sized(r.to_a.length - 1)]
-        end
-      end
-
       class Int8 < Integer; end
       class Int16 < Integer; end
       class Int32 < Integer; end
@@ -149,7 +30,7 @@ module Minitest
       instance_variable_set(:@_generators, {})
 
       def self.create_type_constructor(arity, classes)
-        constructor = ->(c1) do
+        constructor = ->(_c1) do
           if classes.length == arity
             f.call(*classes)
           else
@@ -171,8 +52,8 @@ module Minitest
 
         new_class.define_method(:generator, &f)
 
-        instance_variable_get(:@_generators)[klass] = new_class #.method(:new)
-        self.const_set((klass.name + 'Gen').split('::').last, new_class)
+        instance_variable_get(:@_generators)[klass] = new_class
+        self.const_set("#{klass.name}Gen".split('::').last, new_class)
         new_class
       end
 
@@ -200,11 +81,11 @@ module Minitest
           end
         else
           classgen = ->() do
-            classes[1..-1].map do |c|
-              if c.is_a?(Array)
-                self.for(*c)
+            classes[1..].map do |k|
+              if k.is_a?(Array)
+                self.for(*k)
               else
-                self.for(c)
+                self.for(k)
               end
             end
           end
@@ -271,7 +152,7 @@ module Minitest
         elsif xs2.empty?
           [[]]
         else
-          [xs2] + list_remove.call(k, (n-k), xs2).map { |ys| xs1 + ys }
+          [xs2] + list_remove.call(k, (n - k), xs2).map { |ys| xs1 + ys }
         end
       end
 
@@ -311,11 +192,11 @@ module Minitest
         else
           h1 = xs1.reduce({}) { |c, e| c.merge({ e => h[e] }) }
           h2 = xs2.reduce({}) { |c, e| c.merge({ e => h[e] }) }
-          [h1, h2] + list_remove.call(k, (n-k), h2).map { |ys| h1.merge(ys.to_h) }
+          [h1, h2] + list_remove.call(k, (n - k), h2).map { |ys| h1.merge(ys.to_h) }
         end
       end
 
-      hash_shrink = ->(fk, fv, h) do
+      hash_shrink = ->(_fk, _fv, h) do
         candidates = []
         n          = h.length
         k          = n
@@ -336,40 +217,40 @@ module Minitest
           -(((r & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT))
         end
       end.with_shrink_function do |i|
-        i = if (i & SIGN_BIT).zero?
+        j = if (i & SIGN_BIT).zero?
               i
             else
               -(((i & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT))
             end
-        integral_shrink.call(i)
+        integral_shrink.call(j)
       end
 
       generator_for(Int8) do
         r = sized(0xff)
         (r & 0x80).zero? ? r : -(((r & 0x7f) - 1) ^ 0x7f)
       end.with_shrink_function do |i|
-        i = (i & 0x80).zero? ? i : -(((i & 0x7f) - 1) ^ 0x7f)
-        integral_shrink.call(i)
+        j = (i & 0x80).zero? ? i : -(((i & 0x7f) - 1) ^ 0x7f)
+        integral_shrink.call(j)
       end
 
       generator_for(Int16) do
         r = sized(0xffff)
         (r & 0x8000).zero? ? r : -(((r & 0x7fff) - 1) ^ 0x7fff)
       end.with_shrink_function do |i|
-        i = (i & 0x8000).zero? ? i : -(((i & 0x7fff) - 1) ^ 0x7fff)
-        integral_shrink.call(i)
+        j = (i & 0x8000).zero? ? i : -(((i & 0x7fff) - 1) ^ 0x7fff)
+        integral_shrink.call(j)
       end
 
       generator_for(Int32) do
         r = sized(0xffffffff)
         (r & 0x80000000).zero? ? r : -(((r & 0x7fffffff) - 1) ^ 0x7fffffff)
       end.with_shrink_function do |i|
-        i = if (i & 0x80000000).zero?
+        j = if (i & 0x80000000).zero?
               i
             else
               -(((i & 0x7fffffff) - 1) ^ 0x7fffffff)
             end
-        integral_shrink.call(i)
+        integral_shrink.call(j)
       end
 
       generator_for(Int64) do
@@ -380,12 +261,12 @@ module Minitest
           -(((r & 0x7fffffffffffffff) - 1) ^ 0x7fffffffffffffff)
         end
       end.with_shrink_function do |i|
-        i = if (i & 0x8000000000000000).zero?
+        j = if (i & 0x8000000000000000).zero?
               i
             else
               -(((i & 0x7fffffffffffffff) - 1) ^ 0x7fffffffffffffff)
             end
-        integral_shrink.call(i)
+        integral_shrink.call(j)
       end
 
       generator_for(UInt8) do
@@ -419,8 +300,7 @@ module Minitest
         (0..3)
           .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
           .join
-          .unpack('f')
-          .first
+          .unpack1('f')
       end.with_shrink_function do |f|
         float_shrink.call(f)
       end.with_score_function do |f|
@@ -436,8 +316,7 @@ module Minitest
         (0..7)
           .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
           .join
-          .unpack('d')
-          .first
+          .unpack1('d')
       end.with_shrink_function do |f|
         float_shrink.call(f)
       end.with_score_function do |f|
@@ -453,8 +332,7 @@ module Minitest
         (0..7)
           .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
           .join
-          .unpack('d')
-          .first
+          .unpack1('d')
       end.with_shrink_function do |f|
         float_shrink.call(f)
       end.with_score_function do |f|
@@ -469,17 +347,13 @@ module Minitest
         sized(0x7f).chr
       end.with_shrink_function do |c|
         integral_shrink.call(c.ord).reject(&:negative?).map(&:chr)
-      end.with_score_function do |c|
-        c.ord
-      end
+      end.with_score_function(&:ord)
 
       generator_for(Char) do
         sized(0xff).chr
       end.with_shrink_function do |c|
         integral_shrink.call(c.ord).reject(&:negative?).map(&:chr)
-      end.with_score_function do |c|
-        c.ord
-      end
+      end.with_score_function(&:ord)
 
       generator_for(String) do
         sized(0xff).chr
@@ -493,7 +367,7 @@ module Minitest
         end
       end.with_append(0, 0x20) do |x, y|
         x + y
-      end.with_empty { "" }
+      end.with_empty { '' }
 
       generator_for(Array) do |x|
         [x]
@@ -516,10 +390,10 @@ module Minitest
         end
       end.with_append(0, 0x10) do |xm, ym|
         xm.merge(ym)
-      end.with_empty { Hash.new }
+      end.with_empty { {} }
 
       generator_for(Bool) do
-        sized(0x1).even? ? false : true
+        sized(0x1).odd?
       end.with_score_function do |_|
         1
       end
