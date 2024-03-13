@@ -1,6 +1,10 @@
 AllCops:
   NewCops: enable
 
+Layout/LineLength:
+  Exclude:
+    - 'lib/minitest/proptest_plugin.rb'
+
 Layout/SpaceInsideParens:
   Enabled: false
 
@@ -50,7 +54,13 @@ Style/Lambda:
 Style/MultilineBlockChain:
   Enabled: false
 
+Layout/MultilineHashBraceLayout:
+  Enabled: false
+
 Style/NumericPredicate:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
   Enabled: false
 
 Style/RedundantSelf:

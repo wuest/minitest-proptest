@@ -22,7 +22,10 @@ module Minitest
         max_size: 0x100,
         # Maximum number of shrink attempts (default of half of max unsigned int
         # on the system architecture adopted from QuickCheck
-        max_shrinks: 0x7fffffffffffffff
+        max_shrinks: 0x7fffffffffffffff,
+        # Previously discovered counter-example.  If this exists, it should be
+        # run before any test cases are generated.
+        previous_failure: []
       )
         @test_proc         = test_proc
         @random            = random.call
@@ -39,9 +42,11 @@ module Minitest
         @valid_test_cases  = 0
         @generated         = []
         @arbitrary         = nil
+        @previous_failure  = previous_failure.to_a
       end
 
       def run!
+        rerun!
         iterate!
         shrink!
       end
@@ -109,6 +114,38 @@ module Minitest
         @exception = e
       end
 
+      def rerun!
+        return if @previous_failure.empty?
+
+        old_generator  = @generator
+        old_random     = @random
+        old_arbitrary  = @arbitrary
+
+        index = -1
+        @arbitrary = ->(*classes) do
+          index += 1
+          raise IndexError if index >= @previous_failure.length
+
+          a = @generator.for(*classes)
+          a = a.force(@previous_failure[index])
+          @generated << a
+          @previous_failure[index]
+        end
+
+        @generator = ::Minitest::Proptest::Gen.new(@random)
+        if instance_eval(&@test_proc)
+          @generated = []
+        else
+          @result = @generated
+          @status = Status.interesting
+        end
+
+        # Clean up after we're done
+        @generator = old_generator
+        @random    = old_random
+        @arbitrary = old_arbitrary
+      end
+
       def shrink!
         return if @result.nil?
 
@@ -144,8 +181,8 @@ module Minitest
           if to_test[run[:run]].map(&:first).reduce(&:+) < best_score
             unless instance_eval(&@test_proc)
               best_generated = @generated
-              # Because we pre-sorted our shrink candidates, the first hit is
-              # necessarily the best scoring
+              # The first hit is guaranteed to be the best scoring due to the
+              # shrink candidates are pre-sorted.
               break
             end
           end

@@ -6,6 +6,7 @@ require 'minitest/proptest/gen'
 require 'minitest/proptest/property'
 require 'minitest/proptest/status'
 require 'minitest/proptest/version'
+require 'yaml'
 
 module Minitest
   def self.plugin_proptest_init(options)
@@ -20,10 +21,32 @@ module Minitest
       end
     end
 
+    self.reporter << Proptest.reporter
+
     Proptest.set_seed(options[:seed]) if options.key?(:seed)
   end
 
-  def self.plugin_proptest_options(opts, options); end
+  def self.plugin_proptest_options(opts, _options)
+    opts.on('--max-success', Integer, "Maximum number of successful cases to verify for each property (Default: #{Minitest::Proptest::DEFAULT_MAX_SUCCESS})") do |max_success|
+      Proptest.max_success = max_success
+    end
+    opts.on('--max-discard-ratio', Integer, "Maximum ratio of successful cases versus discarded cases per property (Default: #{Minitest::Proptest::DEFAULT_MAX_DISCARD_RATIO}:1)") do |max_success|
+      Proptest.max_success = max_success
+    end
+    opts.on('--max-size', Integer, "Maximum amount of entropy a single case may use in bytes (Default: #{Minitest::Proptest::DEFAULT_MAX_SIZE} bytes)") do |max_size|
+      Proptest.max_size = max_size
+    end
+    opts.on('--max-shrinks', Integer, "Maximum number of shrink iterations a single failure reduction may use (Default: #{Minitest::Proptest::DEFAULT_MAX_SHRINKS})") do |max_shrinks|
+      Proptest.max_shrinks = max_shrinks
+    end
+    opts.on('--results-db', String, "Location of the file to persist most recent failure cases.  Implies --use-db.  (Default: #{Minitest::Proptest::DEFAULT_DB_LOCATION})") do |db_path|
+      Proptest.result_db = db_path
+      Proptest.use_db!
+    end
+    opts.on('--use-db', 'Persist previous failures in a database and use them before generating new values.  Helps prevent flaky builds.  (Default: false)') do
+      Proptest.use_db!
+    end
+  end
 
   module Assertions
     def property(&f)
@@ -36,17 +59,28 @@ module Minitest
                        Proptest::DEFAULT_RANDOM
                      end
 
+      file, methodname = caller.first.split(/:\d+:in +/)
+      classname = self.class.name
+      methodname.gsub!(/(?:^`|'$)/, '')
+
       prop = Minitest::Proptest::Property.new(
         f,
         random: random_thunk,
-        max_success: Proptest::DEFAULT_MAX_SUCCESS,
-        max_discard_ratio: Proptest::DEFAULT_MAX_DISCARD_RATIO,
-        max_size: Proptest::DEFAULT_MAX_SIZE,
-        max_shrinks: Proptest::DEFAULT_MAX_SHRINKS
+        max_success: Proptest.max_success,
+        max_discard_ratio: Proptest.max_discard_ratio,
+        max_size: Proptest.max_size,
+        max_shrinks: Proptest.max_shrinks,
+        previous_failure: Proptest.reporter.lookup(file, classname, methodname)
       )
       prop.run!
 
-      raise Minitest::Assertion, prop.explain unless prop.status.valid? && !prop.trivial
+      if prop.status.valid? && !prop.trivial
+        Proptest.strike_failure(file, classname, methodname)
+      else
+        Proptest.record_failure(file, classname, methodname, prop.result.map(&:value))
+
+        raise Minitest::Assertion, prop.explain
+      end
     end
   end
 end
