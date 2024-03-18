@@ -279,4 +279,15 @@ class PropertyTest < Minitest::Test
       end
     end
   end
+
+  def test_where
+    property do
+      n = arbitrary Int32
+      where do
+        n.even?
+      end
+
+      n.even?
+    end
+  end
 end

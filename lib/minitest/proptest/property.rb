@@ -36,6 +36,7 @@ module Minitest
         @max_shrinks       = max_shrinks
         @status            = Status.unknown
         @trivial           = false
+        @valid_test_case   = true
         @result            = nil
         @exception         = nil
         @calls             = 0
@@ -60,6 +61,10 @@ module Minitest
           @status = Status.overrun unless @generated.length <= @max_size
           a.value
         end
+      end
+
+      def where(&b)
+        @valid_test_case &= b.call
       end
 
       def explain
@@ -97,13 +102,16 @@ module Minitest
 
       def iterate!
         while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success / 2
+          @valid_test_case = true
           @generated = []
           @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
-          if instance_eval(&@test_proc)
+
+          success = instance_eval(&@test_proc)
+          if @valid_test_case && success
             @status = Status.valid if @status.unknown?
             @valid_test_cases += 1
-          else
+          elsif @valid_test_case
             @result = @generated
             @status = Status.interesting
           end
@@ -133,9 +141,10 @@ module Minitest
         end
 
         @generator = ::Minitest::Proptest::Gen.new(@random)
-        if instance_eval(&@test_proc)
+        success = instance_eval(&@test_proc)
+        if success || !@valid_test_case
           @generated = []
-        else
+        elsif @valid_test_case
           @result = @generated
           @status = Status.interesting
         end
