@@ -19,4 +19,15 @@ class PropertyTest < Minitest::Test
       xs.zip(ys).length > 1
     end
   end
+
+  def test_falsifiable_exhausts
+    property do
+      x = arbitrary UInt8
+      where do
+        x.negative?
+      end
+
+      x >= 0
+    end
+  end
 end

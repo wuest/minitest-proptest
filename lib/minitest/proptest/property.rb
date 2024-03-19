@@ -86,6 +86,11 @@ module Minitest
                    "#{@valid_test_cases} valid " \
                    "example#{@valid_test_cases == 1 ? '' : 's'}:\n" \
                    "#{@generated.map(&:value).inspect}"
+               elsif @status.exhausted?
+                 "The property was unable to generate #{@max_success} test " \
+                   'cases before generating ' \
+                   "#{@max_success * @max_discard_ratio} rejected test cases." \
+                   "This might be a problem with the property's `where` blocks."
                end
         trivial = if @trivial
                     "\nThe test does not appear to use any generated values " \
@@ -115,6 +120,8 @@ module Minitest
             @result = @generated
             @status = Status.interesting
           end
+
+          @status = Status.exhausted if @calls >= @max_success * (@max_discard_ratio + 1)
           @trivial = true if @generated.empty?
         end
       rescue => e
@@ -211,8 +218,8 @@ module Minitest
         !@trivial &&
           !@status.invalid? &&
           !@status.overrun? &&
-          @valid_test_cases < @max_success &&
-          @calls < @max_success * @max_discard_ratio
+          !@status.exhausted? &&
+          @valid_test_cases < @max_success
       end
 
       def continue_shrink?
