@@ -4,7 +4,7 @@ module Minitest
   module Proptest
     # Property evaluation - status, scoring, shrinking
     class Property
-      attr_reader :result, :status, :trivial
+      attr_reader :calls, :result, :status, :trivial
 
       def initialize(
         # The function which proves the property

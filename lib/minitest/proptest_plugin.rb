@@ -50,8 +50,6 @@ module Minitest
 
   module Assertions
     def property(&f)
-      self.assertions += 1
-
       random_thunk = if Proptest.instance_variable_defined?(:@_random_seed)
                        r = Proptest.instance_variable_get(:@_random_seed)
                        ->() { Proptest::DEFAULT_RANDOM.call(r) }
@@ -73,6 +71,7 @@ module Minitest
         previous_failure: Proptest.reporter.lookup(file, classname, methodname)
       )
       prop.run!
+      self.assertions += prop.calls
 
       if prop.status.valid? && !prop.trivial
         Proptest.strike_failure(file, classname, methodname)
