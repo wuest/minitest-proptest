@@ -1,6 +1,9 @@
 AllCops:
   NewCops: enable
 
+Layout/BeginEndAlignment:
+  Enabled: false
+
 Layout/LineLength:
   Exclude:
     - 'lib/minitest/proptest_plugin.rb'
@@ -9,6 +12,9 @@ Layout/SpaceInsideParens:
   Enabled: false
 
 Layout/MultilineArrayBraceLayout:
+  Enabled: false
+
+Layout/RescueEnsureAlignment:
   Enabled: false
 
 Metrics/ClassLength:

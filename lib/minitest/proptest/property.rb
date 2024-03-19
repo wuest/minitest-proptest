@@ -106,13 +106,17 @@ module Minitest
       private
 
       def iterate!
-        while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success / 2
+        while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success
           @valid_test_case = true
           @generated = []
           @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
 
-          success = instance_eval(&@test_proc)
+          success = begin
+                      instance_eval(&@test_proc)
+                    rescue => e
+                      raise e if @valid_test_case
+                    end
           if @valid_test_case && success
             @status = Status.valid if @status.unknown?
             @valid_test_cases += 1

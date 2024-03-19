@@ -77,7 +77,9 @@ module Minitest
       if prop.status.valid? && !prop.trivial
         Proptest.strike_failure(file, classname, methodname)
       else
-        Proptest.record_failure(file, classname, methodname, prop.result.map(&:value)) unless prop.status.exhausted?
+        unless prop.status.exhausted? || prop.status.invalid?
+          Proptest.record_failure(file, classname, methodname, prop.result.map(&:value))
+        end
 
         raise Minitest::Assertion, prop.explain
       end
