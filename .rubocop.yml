@@ -17,6 +17,10 @@ Layout/MultilineArrayBraceLayout:
 Layout/RescueEnsureAlignment:
   Enabled: false
 
+Metrics/BlockNesting:
+  Exclude:
+    - 'lib/minitest/proptest/property.rb'
+
 Metrics/ClassLength:
   Enabled: false
 

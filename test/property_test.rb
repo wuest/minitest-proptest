@@ -290,4 +290,19 @@ class PropertyTest < Minitest::Test
       n.even?
     end
   end
+
+  def test_minitest_assert
+    property do
+      n = arbitrary Int32
+      where do
+        n.even?
+      end
+      where do
+        n.nonzero?
+      end
+
+      assert n.even?
+      assert (n % n).zero?
+    end
+  end
 end

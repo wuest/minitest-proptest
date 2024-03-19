@@ -4,7 +4,12 @@ module Minitest
   module Proptest
     # Property evaluation - status, scoring, shrinking
     class Property
+      require 'minitest/assertions'
+      include Minitest::Assertions
+
       attr_reader :calls, :result, :status, :trivial
+
+      attr_accessor :assertions
 
       def initialize(
         # The function which proves the property
@@ -40,6 +45,7 @@ module Minitest
         @result            = nil
         @exception         = nil
         @calls             = 0
+        @assertions        = 0
         @valid_test_cases  = 0
         @generated         = []
         @arbitrary         = nil
@@ -114,6 +120,11 @@ module Minitest
 
           success = begin
                       instance_eval(&@test_proc)
+                    rescue Minitest::Assertion
+                      if @valid_test_case
+                        @result = @generated
+                        @status = Status.interesting
+                      end
                     rescue => e
                       raise e if @valid_test_case
                     end
@@ -152,7 +163,17 @@ module Minitest
         end
 
         @generator = ::Minitest::Proptest::Gen.new(@random)
-        success = instance_eval(&@test_proc)
+        success = begin
+                    instance_eval(&@test_proc)
+                  rescue Minitest::Assertion
+                    !@valid_test_case
+                  rescue => e
+                    if @valid_test_case
+                      @status = Status.invalid
+                      @exception = e
+                      false
+                    end
+                  end
         if success || !@valid_test_case
           @generated = []
         elsif @valid_test_case
@@ -194,15 +215,28 @@ module Minitest
         end
 
         while continue_shrink? && run[:run] < to_test.length
-          @generated  = []
-          run[:index] = -1
+          @generated       = []
+          run[:index]      = -1
+          @valid_test_case = true
 
           @generator = ::Minitest::Proptest::Gen.new(@random)
           if to_test[run[:run]].map(&:first).reduce(&:+) < best_score
-            unless instance_eval(&@test_proc)
-              best_generated = @generated
+            success = begin
+                        instance_eval(&@test_proc)
+                      rescue Minitest::Assertion
+                        false
+                      rescue => e
+                        next unless @valid_test_case
+
+                        @status = Status.invalid
+                        @excption = e
+                        break
+                      end
+
+            if !success && @valid_test_case
               # The first hit is guaranteed to be the best scoring due to the
               # shrink candidates are pre-sorted.
+              best_generated = @generated
               break
             end
           end
