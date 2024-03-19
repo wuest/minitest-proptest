@@ -17,6 +17,10 @@ Layout/MultilineArrayBraceLayout:
 Layout/RescueEnsureAlignment:
   Enabled: false
 
+Lint/BinaryOperatorWithIdentitcalOperands:
+  Exclude:
+    - 'test/property_test.rb'
+
 Metrics/BlockNesting:
   Exclude:
     - 'lib/minitest/proptest/property.rb'
