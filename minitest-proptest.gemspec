@@ -18,9 +18,9 @@ Gem::Specification.new do |s|
   s.metadata['homepage_uri'] = s.homepage
   s.metadata['source_code_uri'] = s.homepage
   s.metadata['changelog_uri'] = 'https://github.com/wuest/minitest-proptest/blob/main/CHANGELOG.md'
+  s.metadata['rubygems_mfa_required'] = 'true'
 
   s.files = `git ls-files lib`.split("\n")
 
   s.add_dependency 'minitest', '~> 5'
-  s.metadata['rubygems_mfa_required'] = 'true'
 end
