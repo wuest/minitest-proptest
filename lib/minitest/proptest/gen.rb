@@ -129,20 +129,28 @@ module Minitest
           .reject   { |i| i.abs >= x.abs }
       end
 
+      score_float = ->(f) do
+        if f.nan? || f.infinite?
+          0
+        else
+          f.abs.ceil
+        end
+      end
+
       float_shrink = ->(x) do
-        return [] if x.nan? || x.infinite?
-        candidates = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
+        return [] if x.nan? || x.infinite? || x.zero?
+        candidates = [Float::NAN, Float::INFINITY]
         y = x
 
-        until y == 0 || y.to_f.infinite? || y.to_f.nan?
+        until y.zero? || y.to_f.infinite? || y.to_f.nan?
           candidates << (x - y)
           y = (y / 2.0).to_i
         end
 
-        candidates
-          .flat_map { |i| [i - 1, i, i + 1] }
-          .reject   { |i| i.abs >= x.abs }
-          .uniq
+        score = score_float.call(x)
+        candidates.reduce([]) do |cs, c|
+          cs + (score_float.call(c) < score ? [c.to_f] : [])
+        end
       end
 
       score_complex = ->(c) do
@@ -160,18 +168,8 @@ module Minitest
       end
 
       complex_shrink = ->(x) do
-        rs = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
-        is = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
-
-        r = x.real
-        i = x.imaginary
-        until (r == 0 || r.to_f.infinite? || r.to_f.nan?) &&
-              (i == 0 || i.to_f.infinite? || i.to_f.nan?)
-          rs << (x.real - r)
-          is << (x.imaginary - i)
-          r = (r / 2.0).to_i
-          i = (i / 2.0).to_i
-        end
+        rs = float_shrink.call(x.real)
+        is = float_shrink.call(x.imaginary)
 
         score = score_complex.call(x)
         rs.flat_map { |real| is.map { |imag| Complex(real, imag) } }
@@ -347,13 +345,7 @@ module Minitest
           .unpack1('f')
       end.with_shrink_function do |f|
         float_shrink.call(f)
-      end.with_score_function do |f|
-        if f.nan? || f.infinite?
-          0
-        else
-          f.abs.ceil
-        end
-      end
+      end.with_score_function(&score_float)
 
       float64build = ->(bits) do
         (0..7)
@@ -367,26 +359,14 @@ module Minitest
         float64build.call(bits)
       end.with_shrink_function do |f|
         float_shrink.call(f)
-      end.with_score_function do |f|
-        if f.nan? || f.infinite?
-          0
-        else
-          f.abs.ceil
-        end
-      end
+      end.with_score_function(&score_float)
 
       generator_for(Float) do
         bits = sized(0xffffffffffffffff)
         float64build.call(bits)
       end.with_shrink_function do |f|
         float_shrink.call(f)
-      end.with_score_function do |f|
-        if f.nan? || f.infinite?
-          0
-        else
-          f.abs.ceil
-        end
-      end
+      end.with_score_function(&score_float)
 
       generator_for(Complex) do
         real = sized(0xffffffffffffffff)
