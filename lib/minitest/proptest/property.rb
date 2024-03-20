@@ -95,8 +95,9 @@ module Minitest
                elsif @status.exhausted?
                  "The property was unable to generate #{@max_success} test " \
                    'cases before generating ' \
-                   "#{@max_success * @max_discard_ratio} rejected test cases." \
-                   "This might be a problem with the property's `where` blocks."
+                   "#{@max_success * @max_discard_ratio} rejected test " \
+                   "cases.  This might be a problem with the property's " \
+                   '`where` blocks.'
                end
         trivial = if @trivial
                     "\nThe test does not appear to use any generated values " \
