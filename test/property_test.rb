@@ -155,10 +155,13 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                       x.abs < n.abs &&
-                                       ( n < 0 ? x <= 1 : x >= -1 )
-                                   )
+        if x.nan?
+          score.zero?
+        elsif x.infinite?
+          score.zero?
+        else
+          score == x.abs.ceil && x.abs < n.abs
+        end
       end
     end
   end
@@ -171,10 +174,13 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                       x.abs < n.abs &&
-                                       ( n < 0 ? x <= 1 : x >= -1 )
-                                   )
+        if x.nan?
+          score.zero?
+        elsif x.infinite?
+          score.zero?
+        else
+          score == x.abs.ceil && x.abs < n.abs
+        end
       end
     end
   end
@@ -187,10 +193,30 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        (x.nan? || x.infinite?) || ( score == x.abs.ceil &&
-                                       x.abs < n.abs &&
-                                       ( n < 0 ? x <= 1 : x >= -1 )
-                                   )
+        if x.nan?
+          score.zero?
+        elsif x.infinite?
+          score.zero?
+        else
+          score == x.abs.ceil && x.abs < n.abs
+        end
+      end
+    end
+  end
+
+  def test_shrink_complex
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Complex)
+    property do
+      n = arbitrary Complex
+      g = gen.force(n)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, c|
+        r = c.real
+        i = c.imaginary
+        sr = (r.to_f.nan? || r.to_f.infinite?) ? 0 : r.abs.ceil
+        si = (i.to_f.nan? || i.to_f.infinite?) ? 0 : i.abs.ceil
+        score == sr + si
       end
     end
   end

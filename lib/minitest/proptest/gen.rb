@@ -130,10 +130,11 @@ module Minitest
       end
 
       float_shrink = ->(x) do
-        candidates = [Float::NAN, Float::INFINITY]
+        return [] if x.nan? || x.infinite?
+        candidates = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
         y = x
 
-        until y == 0 || y
+        until y == 0 || y.to_f.infinite? || y.to_f.nan?
           candidates << (x - y)
           y = (y / 2.0).to_i
         end
@@ -141,6 +142,41 @@ module Minitest
         candidates
           .flat_map { |i| [i - 1, i, i + 1] }
           .reject   { |i| i.abs >= x.abs }
+          .uniq
+      end
+
+      score_complex = ->(c) do
+        r = if c.real.to_f.nan? || c.real.to_f.infinite?
+              0
+            else
+              c.real.abs.ceil
+            end
+        i = if c.imaginary.to_f.nan? || c.imaginary.to_f.infinite?
+              0
+            else
+              c.imaginary.abs.ceil
+            end
+        r + i
+      end
+
+      complex_shrink = ->(x) do
+        rs = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
+        is = [Float::NAN, Float::INFINITY, 1.0, 0.0, -1.0]
+
+        r = x.real
+        i = x.imaginary
+        until (r == 0 || r.to_f.infinite? || r.to_f.nan?) &&
+              (i == 0 || i.to_f.infinite? || i.to_f.nan?)
+          rs << (x.real - r)
+          is << (x.imaginary - i)
+          r = (r / 2.0).to_i
+          i = (i / 2.0).to_i
+        end
+
+        score = score_complex.call(x)
+        rs.flat_map { |real| is.map { |imag| Complex(real, imag) } }
+          .reject { |c| score_complex.call(c) >= score }
+          .uniq
       end
 
       # List shrink adapted from QuickCheck
@@ -311,12 +347,16 @@ module Minitest
         end
       end
 
-      generator_for(Float64) do
-        bits = sized(0xffffffffffffffff)
+      float64build = ->(bits) do
         (0..7)
           .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
           .join
           .unpack1('d')
+      end
+
+      generator_for(Float64) do
+        bits = sized(0xffffffffffffffff)
+        float64build.call(bits)
       end.with_shrink_function do |f|
         float_shrink.call(f)
       end.with_score_function do |f|
@@ -329,10 +369,7 @@ module Minitest
 
       generator_for(Float) do
         bits = sized(0xffffffffffffffff)
-        (0..7)
-          .map { |y| ((bits & (0xff << (8 * y))) >> (8 * y)).chr }
-          .join
-          .unpack1('d')
+        float64build.call(bits)
       end.with_shrink_function do |f|
         float_shrink.call(f)
       end.with_score_function do |f|
@@ -342,6 +379,14 @@ module Minitest
           f.abs.ceil
         end
       end
+
+      generator_for(Complex) do
+        real = sized(0xffffffffffffffff)
+        imag = sized(0xffffffffffffffff)
+        Complex(float64build.call(real), float64build.call(imag))
+      end.with_shrink_function do |c|
+        complex_shrink.call(c)
+      end.with_score_function(&score_complex)
 
       generator_for(ASCIIChar) do
         sized(0x7f).chr
