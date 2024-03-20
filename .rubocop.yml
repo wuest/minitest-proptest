@@ -87,3 +87,6 @@ Style/RescueStandardError:
 Style/SoleNestedConditional:
   Exclude:
     - 'lib/minitest/proptest/property.rb'
+
+Style/TernaryParentheses:
+  Enabled: false

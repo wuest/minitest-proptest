@@ -155,9 +155,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        if x.nan?
-          score.zero?
-        elsif x.infinite?
+        if x.nan? || x.infinite?
           score.zero?
         else
           score == x.abs.ceil && x.abs < n.abs
@@ -174,9 +172,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        if x.nan?
-          score.zero?
-        elsif x.infinite?
+        if x.nan? || x.infinite?
           score.zero?
         else
           score == x.abs.ceil && x.abs < n.abs
@@ -193,9 +189,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        if x.nan?
-          score.zero?
-        elsif x.infinite?
+        if x.nan? || x.infinite?
           score.zero?
         else
           score == x.abs.ceil && x.abs < n.abs
@@ -256,7 +250,20 @@ class PropertyTest < Minitest::Test
       g = gen.force(a)
       candidates = g.shrink_candidates
 
-      candidates.all? do |score, x|
+      candidates.all? do |score, _|
+        score < g.score
+      end
+    end
+  end
+
+  def test_shrink_rational
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Rational)
+    property do
+      a = arbitrary Rational
+      g = gen.force(a)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, _|
         score < g.score
       end
     end

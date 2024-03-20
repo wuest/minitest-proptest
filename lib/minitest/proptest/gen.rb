@@ -119,14 +119,11 @@ module Minitest
 
         until y == 0
           candidates << (x - y)
-          candidates << y
-          # Prevent negative integral from preventing termination
+          candidates << y if y.abs < x.abs
           y = (y / 2.0).to_i
         end
 
         candidates
-          .flat_map { |i| [i - 1, i, i + 1] }
-          .reject   { |i| i.abs >= x.abs }
       end
 
       score_float = ->(f) do
@@ -139,6 +136,7 @@ module Minitest
 
       float_shrink = ->(x) do
         return [] if x.nan? || x.infinite? || x.zero?
+
         candidates = [Float::NAN, Float::INFINITY]
         y = x
 
@@ -235,7 +233,27 @@ module Minitest
         ys = f.call(r.last)
 
         xs.flat_map { |x| ys.map { |y| x <= y ? (x..y) : (y..x) } }
-          .uniq
+      end
+
+      score_rational = ->(r) do
+        (r.numerator * r.denominator).abs
+      end
+
+      rational_shrink = ->(r) do
+        ns = integral_shrink.call(r.numerator)
+        ds = integral_shrink.call(r.denominator)
+
+        score = score_rational.call(r)
+        ns.flat_map do |n|
+          ds.reduce([]) do |rs, d|
+            if d.zero?
+              rs
+            else
+              rational = Rational(n, d)
+              rs + (score_rational.call(rational) < score ? [rational] : [])
+            end
+          end
+        end
       end
 
       hash_shrink = ->(_fk, _fv, h) do
@@ -436,7 +454,18 @@ module Minitest
         xs = [ra.first, ra.last, rb.first, rb.last].sort
         (xs.first..xs.last)
       end
- 
+
+      generator_for(Rational) do
+        n = sized(MAX_SIZE)
+        d = sized(MAX_SIZE - 1) + 1
+        if (n & SIGN_BIT).zero?
+          Rational(n, d)
+        else
+          Rational(-(((n & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT)), d)
+        end
+      end.with_shrink_function(&rational_shrink)
+         .with_score_function(&score_rational)
+
       generator_for(Bool) do
         sized(0x1).odd?
       end.with_score_function do |_|
