@@ -17,7 +17,7 @@ Layout/MultilineArrayBraceLayout:
 Layout/RescueEnsureAlignment:
   Enabled: false
 
-Lint/BinaryOperatorWithIdentitcalOperands:
+Lint/BinaryOperatorWithIdenticalOperands:
   Exclude:
     - 'test/property_test.rb'
 
