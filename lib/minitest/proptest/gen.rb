@@ -232,6 +232,14 @@ module Minitest
         end
       end
 
+      range_shrink = ->(f, r) do
+        xs = f.call(r.first)
+        ys = f.call(r.last)
+
+        xs.flat_map { |x| ys.map { |y| x <= y ? (x..y) : (y..x) } }
+          .uniq
+      end
+
       hash_shrink = ->(_fk, _fv, h) do
         candidates = []
         n          = h.length
@@ -437,6 +445,18 @@ module Minitest
         xm.merge(ym)
       end.with_empty { {} }
 
+      generator_for(Range) do |x|
+        (x..x)
+      end.with_shrink_function(&range_shrink).with_score_function do |f, r|
+        r.to_a.reduce(1) do |c, x|
+          y = f.call(x).abs
+          c * (y > 0 ? y + 1 : 1)
+        end.to_i * r.to_a.length
+      end.with_append(2, 2) do |ra, rb|
+        xs = [ra.first, ra.last, rb.first, rb.last].sort
+        (xs.first..xs.last)
+      end
+ 
       generator_for(Bool) do
         sized(0x1).odd?
       end.with_score_function do |_|

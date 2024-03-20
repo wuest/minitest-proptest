@@ -19,8 +19,8 @@ module Minitest
         end
 
         def self.with_append(bound_min, bound_max, &f)
-          define_singleton_method(:bound_max) { bound_max }
           define_singleton_method(:bound_min) { bound_min }
+          define_singleton_method(:bound_max) { bound_max }
           define_method(:append) do |other|
             @value = f.call(value, other.value)
             self
