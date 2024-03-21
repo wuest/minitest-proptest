@@ -74,6 +74,8 @@ The following types are provided by Minitest-Proptest:
   * `Float32`
   * `Float64`
   * `Float` - identical to `Float64`
+* `Complex` numbers
+* `Rational` numbers
 * Text types
   * `Char` - any single character 0x00-0xff
   * `ASCIIChar` - any character 0x00-0x7f
@@ -82,57 +84,71 @@ The following types are provided by Minitest-Proptest:
 * Polymorphic types
   * `Array a` - array of arbitrary length of another type
   * `Hash a b` - hash of arbitrary size from type `a` to type `b`
+  * `Range a` - range between two values whose classes implement `<=>`
 
 ## Writing Generators
 
-Writing high quality generators can make or break a given set of property tests.
-Quite a lot can be achieved with built-in primitive types, but automating the
-process of constructing the data which will be under test can improve the
-clarity of the tests.
+Generators provide the machinery through which arbitrary values are provided,
+scored, and shrunk when a counterexample is found.  It is typically only
+relatively primitive data which require generators, while non-primitive objects
+are generally constructed from arbitrary data.
+
+Writing high quality generators for primitive types can make or break property
+tests' ability to provide reliable results.  While a large number of built-in
+primitive generators are provided, cases will arise for which additional
+generators are required to improve tests' clarity.
 
 ### Generating Simple Values
+
 Generators are written with the `generator_for` method, which is available
 globally.  The simplest case is to create a generator for a type which generates
-data directly:
+data directly.
 
-```ruby
-BoxedUInt8 = Struct.new(:value)
-generator_for(BoxedUInt8) do
-  i = sized(0xff)
-  BoxedUInt8.new(i)
-end
+#### Generator Helpers
 
-# ...
-boxed = arbitrary BoxedUInt8
-```
-
-The `sized` method provides a random Integer from 0 to the provided value
-inclusive.  In cases where a constrained set of possible values is desired,
-the `one_of` method can be used:
-
-```ruby
-Dice = Struct.new(:value)
-generator_for(Dice) do
-  Dice.new(one_of(1..6))
-end
-
-# ...
-one_d_six = arbitrary Dice
-```
+* The `sized` method provides a random Integer from 0 to the provided value,
+  inclusive.  This provides direct access to entropy for the purpose of
+  primitive generation.
+  ```ruby
+  BoxedUInt8 = Struct.new(:value)
+  generator_for(BoxedUInt8) do
+    i = sized(0xff)
+    BoxedUInt8.new(i)
+  end
+  
+  # ...
+  boxed = arbitrary BoxedUInt8
+  ```
+* The `one_of` method will produce a random selection of a set of values.  The
+  set may be given as any collection which implements `to_a`.  This provides
+  indirect access to entropy via the selection of value.
+  ```ruby
+  Dice = Struct.new(:value)
+  generator_for(Dice) do
+    Dice.new(one_of(1..6))
+  end
+  
+  # ...
+  one_d_six = arbitrary Dice
+  ```
 
 ### Scoring and Shrinking
 
 Finding counter-examples is made more helpful when the counter-examples are able
-to be meaningfully reduced to an easier failure case to comprehend.  By default
-numeric values will tend towards zero as they are shrunk, and types which are
-list-like will try to drop elements while shrinking their respective values.
+to be meaningfully reduced to an easier failure case about which to reason.
+Built-in generators which provide numeric values will tend towards zero as they
+are shrunk (n.b. `Float` types will consider `NaN` and `Infinity` as having an
+equal score to 0), and types which are list-like will try to drop elements while
+shrinking the elements' respective values.  The default behavior of any custom
+generator will be to convert the value to an integer via `to_i` and take its
+absolute value.
 
 If a scoring and shrink function are provided to the generator, any failure
 condition will be retried in forms which are generated according to the
 functions in question until the score closest to zero is obtained.
 
-The `BoxedUInt8` definition from above can be rewritten for shrinking with the
-following shrink and score functions:
+The `BoxedUInt8` definition can be rewritten for shrinking with the following
+shrink and score functions:
 
 ```ruby
 BoxedUInt8 = Struct.new(:value)
