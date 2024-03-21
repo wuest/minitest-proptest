@@ -15,13 +15,24 @@ Tests should be written to express a universal property in the simplest manner
 achievable.  Properties can be expressed via `property` within any context where
 an assertion is allowed.
 
+### Goal of Property Testing
+
+Property tests should aim to express **universal properties** of the code under
+test - the framework will generate test cases to try to find counter-examples
+to properties listed.
+
 ### Test Structure
 
 Tests should usually follow the following sequence:
 
 1. Allocate arbitrary primitives
 2. Build necessary data structures from the primitives
-3. Express assertions as a boolean
+3. Provide predicates to filter out inappropriate data generation
+4. Express assertions and return a boolean
+  - All Minitest assertions are available within a property.  They will
+    conveniently return a boolean.
+  - The block provided to the `property` method is an implicit assertion - the
+    assertion will fail if the return value is not truthy.
 
 A trivial example can be seen below:
 
@@ -31,14 +42,40 @@ class PropertyTest < Minitest::Test
     # Allocate a list of Integers
     xs = arbitrary Array, UInt8
 
+    # The list must contain at least one value
+    where { !xs.empty? }
+
     # Calculate the list's average
     average = xs.reduce(&:+) / xs.length.to_f
 
     # Conclude the block with the core assertion of universal property:
-    xs.empty? || (xs.min <= average <= xs.max)
+    xs.min <= average <= xs.max
   end
 end
 ```
+
+This can also be expressed with `assert`:
+
+```ruby
+class PropertyTest < Minitest::Test
+  def test_average_list
+    # Allocate a list of Integers
+    xs = arbitrary Array, UInt8
+
+    # The list must contain at least one value
+    where { !xs.empty? }
+
+    # Calculate the list's average
+    average = xs.reduce(&:+) / xs.length.to_f
+
+    # Conclude the block with the core assertion of universal property:
+    assert xs.min <= average <= xs.max
+  end
+end
+```
+
+Using Minitest assertions is particularly useful when a long chain of logic
+would otherwise be necessary to express a success case.
 
 ### Test Tips
 
@@ -115,7 +152,7 @@ data directly.
     i = sized(0xff)
     BoxedUInt8.new(i)
   end
-  
+
   # ...
   boxed = arbitrary BoxedUInt8
   ```
@@ -127,7 +164,7 @@ data directly.
   generator_for(Dice) do
     Dice.new(one_of(1..6))
   end
-  
+
   # ...
   one_d_six = arbitrary Dice
   ```
