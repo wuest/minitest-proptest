@@ -14,6 +14,10 @@ module Minitest
       def initialize(
         # The function which proves the property
         test_proc,
+        # The file in which our property lives
+        filename,
+        # The method containing our property
+        methodname,
         # Any class which provides `rand` accepting both an Integer and a Range
         # is acceptable.  The default value is Ruby's standard Mersenne Twister
         # implementation.
@@ -33,6 +37,8 @@ module Minitest
         previous_failure: []
       )
         @test_proc         = test_proc
+        @filename          = filename
+        @methodname        = methodname
         @random            = random.call
         @generator         = ::Minitest::Proptest::Gen.new(@random)
         @max_success       = max_success
@@ -50,27 +56,13 @@ module Minitest
         @generated         = []
         @arbitrary         = nil
         @previous_failure  = previous_failure.to_a
+        @local_variables   = {}
       end
 
       def run!
         rerun!
         iterate!
         shrink!
-      end
-
-      def arbitrary(*classes)
-        if @arbitrary
-          @arbitrary.call(*classes)
-        else
-          a = @generator.for(*classes)
-          @generated << a
-          @status = Status.overrun unless @generated.length <= @max_size
-          a.value
-        end
-      end
-
-      def where(&b)
-        @valid_test_case &= b.call
       end
 
       def explain
@@ -88,10 +80,20 @@ module Minitest
                elsif @status.unknown?
                  'The property has not yet been tested.'
                elsif @status.interesting?
-                 'The property has found the following counterexample after ' \
-                   "#{@valid_test_cases} valid " \
-                   "example#{@valid_test_cases == 1 ? '' : 's'}:\n" \
-                   "#{@generated.map(&:value).inspect}"
+                 info = 'A counterexample to a property has been found after ' \
+                        "#{@valid_test_cases} valid " \
+                        "example#{@valid_test_cases == 1 ? '' : 's'}.\n"
+                 var_info = if @local_variables.empty?
+                              'Variables local to the property were unable ' \
+                                'to be determined.  This is usually a bug.'
+                            else
+                              "The values at the time of the failure were:\n"
+                            end
+                 vars = @local_variables
+                        .map { |k, v| "\t#{k}: #{v.inspect}" }
+                        .join("\n")
+
+                 info + var_info + vars
                elsif @status.exhausted?
                  "The property was unable to generate #{@max_success} test " \
                    'cases before generating ' \
@@ -111,6 +113,21 @@ module Minitest
       end
 
       private
+
+      def arbitrary(*classes)
+        if @arbitrary
+          @arbitrary.call(*classes)
+        else
+          a = @generator.for(*classes)
+          @generated << a
+          @status = Status.overrun unless @generated.length <= @max_size
+          a.value
+        end
+      end
+
+      def where(&b)
+        @valid_test_case &= b.call
+      end
 
       def iterate!
         while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success
@@ -198,6 +215,17 @@ module Minitest
         candidates     = @generated.map(&:shrink_candidates)
         old_arbitrary  = @arbitrary
 
+        local_variables = {}
+        tracepoint = TracePoint.new(:b_return) do |trace|
+          if trace.path == @filename && trace.method_id.to_s == @methodname
+            b     = trace.binding
+            vs    = b.local_variables
+            known = vs.to_h { |lv| [lv.to_s, b.local_variable_get(lv)] }
+            local_variables.delete_if { true }
+            local_variables.merge!(known)
+          end
+        end
+
         to_test = candidates
                   .map    { |x| x.map { |y| [y] } }
                   .reduce { |c, e| c.flat_map { |a| e.map { |b| a + b } } }
@@ -223,6 +251,7 @@ module Minitest
           @generator = ::Minitest::Proptest::Gen.new(@random)
           if to_test[run[:run]].map(&:first).reduce(&:+) < best_score
             success = begin
+                        tracepoint.enable
                         instance_eval(&@test_proc)
                       rescue Minitest::Assertion
                         false
@@ -232,10 +261,12 @@ module Minitest
                         @status = Status.invalid
                         @excption = e
                         break
+                      ensure
+                        tracepoint.disable
                       end
 
             if !success && @valid_test_case
-              # The first hit is guaranteed to be the best scoring due to the
+              # The first hit is guaranteed to be the best scoring since the
               # shrink candidates are pre-sorted.
               best_generated = @generated
               break
@@ -245,12 +276,14 @@ module Minitest
           @calls    += 1
           run[:run] += 1
         end
+
         # Clean up after we're done
-        @generated = best_generated
-        @result    = best_generated
-        @generator = old_generator
-        @random    = old_random
-        @arbitrary = old_arbitrary
+        @generated       = best_generated
+        @result          = best_generated
+        @generator       = old_generator
+        @random          = old_random
+        @arbitrary       = old_arbitrary
+        @local_variables = local_variables
       end
 
       def continue_iterate?

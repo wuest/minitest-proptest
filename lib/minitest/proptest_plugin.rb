@@ -63,6 +63,8 @@ module Minitest
 
       prop = Minitest::Proptest::Property.new(
         f,
+        file,
+        methodname,
         random: random_thunk,
         max_success: Proptest.max_success,
         max_discard_ratio: Proptest.max_discard_ratio,
