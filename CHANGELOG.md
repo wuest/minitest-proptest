@@ -1,3 +1,6 @@
+## [0.2.1] - 2024-09-08
+- Added richer feedback when a property is falsified
+
 ## [0.2.0] - 2024-03-21
 
 - Added `where` method to discard invalid generated test cases
