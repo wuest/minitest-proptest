@@ -21,6 +21,10 @@ Lint/BinaryOperatorWithIdenticalOperands:
   Exclude:
     - 'test/property_test.rb'
 
+Lint/SuppressedException:
+  Exclude:
+    - 'lib/minitest/proptest/property.rb'
+
 Metrics/BlockNesting:
   Exclude:
     - 'lib/minitest/proptest/property.rb'

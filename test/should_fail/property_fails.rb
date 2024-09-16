@@ -30,4 +30,11 @@ class PropertyTest < Minitest::Test
       x >= 0
     end
   end
+
+  def test_falsifiable_assert
+    property do
+      x = arbitrary UInt8
+      assert x.even?
+    end
+  end
 end

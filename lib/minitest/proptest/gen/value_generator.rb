@@ -98,7 +98,11 @@ module Minitest
         def shrink_candidates
           fs = @type_parameters.map { |x| x.method(:shrink_function) }
           os = score
-          candidates = shrink_function(*fs, value)
+          # Ensure that the end of the shrink attempt will contain the original
+          # value.  This is necessary to guarantee that the shrink process
+          # produces at least one failure for the purpose of capturing variable
+          # assignment.
+          candidates = shrink_function(*fs, value) + [value]
           candidates
             .map    { |c| [force(c).score, c] }
             .reject { |(s, _)| s > os }
