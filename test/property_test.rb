@@ -11,7 +11,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0x7f && x >= -0x80 &&
           ( n < 0 ? x <= 1 : x >= -1 )
@@ -27,7 +27,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0x7fff && x >= -0x8000 &&
           ( n < 0 ? x <= 1 : x >= -1 )
@@ -43,7 +43,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0x7fffffff && x >= -0x80000000 &&
           ( n < 0 ? x <= 1 : x >= -1 )
@@ -59,7 +59,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0x7fffffffffffffff && x >= -0x8000000000000000 &&
           ( n < 0 ? x <= 1 : x >= -1 )
@@ -75,7 +75,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0x7fffffffffffffff && x >= -0x8000000000000000 &&
           ( n < 0 ? x <= 1 : x >= -1 )
@@ -91,7 +91,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0xff &&
           x >= 0
@@ -107,7 +107,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0xffff &&
           x >= 0
@@ -123,7 +123,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0xffffffff &&
           x >= 0
@@ -139,7 +139,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.abs < n.abs &&
+        x.abs <= n.abs &&
           score == x.abs &&
           x <= 0xffffffffffffffff &&
           x >= 0
@@ -158,7 +158,7 @@ class PropertyTest < Minitest::Test
         if x.nan? || x.infinite?
           score.zero?
         else
-          score == x.abs.ceil && x.abs < n.abs
+          score == x.abs.ceil && x.abs <= n.abs
         end
       end
     end
@@ -175,7 +175,7 @@ class PropertyTest < Minitest::Test
         if x.nan? || x.infinite?
           score.zero?
         else
-          score == x.abs.ceil && x.abs < n.abs
+          score == x.abs.ceil && x.abs <= n.abs
         end
       end
     end
@@ -192,7 +192,7 @@ class PropertyTest < Minitest::Test
         if x.nan? || x.infinite?
           score.zero?
         else
-          score == x.abs.ceil && x.abs < n.abs
+          score == x.abs.ceil && x.abs <= n.abs
         end
       end
     end
@@ -251,7 +251,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, _|
-        score < g.score
+        score <= g.score
       end
     end
   end
@@ -264,7 +264,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, _|
-        score < g.score
+        score <= g.score
       end
     end
   end
@@ -277,7 +277,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.ord < c.ord &&
+        x.ord <= c.ord &&
           score == x.ord &&
           x.ord <= 0xff && x.ord >= 0
       end
@@ -292,7 +292,7 @@ class PropertyTest < Minitest::Test
       candidates = g.shrink_candidates
 
       candidates.all? do |score, x|
-        x.ord < c.ord &&
+        x.ord <= c.ord &&
           score == x.ord &&
           x.ord <= 0x7f && x.ord >= 0
       end

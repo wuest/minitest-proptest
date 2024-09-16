@@ -287,47 +287,27 @@ module Minitest
 
       generator_for(Int8) do
         r = sized(0xff)
-        (r & 0x80).zero? ? r : -(((r & 0x7f) - 1) ^ 0x7f)
-      end.with_shrink_function do |i|
-        j = (i & 0x80).zero? ? i : -(((i & 0x7f) - 1) ^ 0x7f)
-        integral_shrink.call(j)
-      end
+        (r & 0x80).zero? ? r : -((r ^ 0x7f) - 0x7f)
+      end.with_shrink_function(&integral_shrink)
 
       generator_for(Int16) do
         r = sized(0xffff)
-        (r & 0x8000).zero? ? r : -(((r & 0x7fff) - 1) ^ 0x7fff)
-      end.with_shrink_function do |i|
-        j = (i & 0x8000).zero? ? i : -(((i & 0x7fff) - 1) ^ 0x7fff)
-        integral_shrink.call(j)
-      end
+        (r & 0x8000).zero? ? r : -((r ^ 0x7fff) - 0x7fff)
+      end.with_shrink_function(&integral_shrink)
 
       generator_for(Int32) do
         r = sized(0xffffffff)
-        (r & 0x80000000).zero? ? r : -(((r & 0x7fffffff) - 1) ^ 0x7fffffff)
-      end.with_shrink_function do |i|
-        j = if (i & 0x80000000).zero?
-              i
-            else
-              -(((i & 0x7fffffff) - 1) ^ 0x7fffffff)
-            end
-        integral_shrink.call(j)
-      end
+        (r & 0x80000000).zero? ? r : -((r ^ 0x7fffffff) - 0x7fffffff)
+      end.with_shrink_function(&integral_shrink)
 
       generator_for(Int64) do
         r = sized(0xffffffffffffffff)
         if (r & 0x8000000000000000).zero?
           r
         else
-          -(((r & 0x7fffffffffffffff) - 1) ^ 0x7fffffffffffffff)
+          -((r ^ 0x7fffffffffffffff) - 0x7fffffffffffffff)
         end
-      end.with_shrink_function do |i|
-        j = if (i & 0x8000000000000000).zero?
-              i
-            else
-              -(((i & 0x7fffffffffffffff) - 1) ^ 0x7fffffffffffffff)
-            end
-        integral_shrink.call(j)
-      end
+      end.with_shrink_function(&integral_shrink)
 
       generator_for(UInt8) do
         sized(0xff)

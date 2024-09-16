@@ -7,6 +7,8 @@ module Minitest
       require 'minitest/assertions'
       include Minitest::Assertions
 
+      class InvalidProperty < StandardError; end
+
       attr_reader :calls, :result, :status, :trivial
 
       attr_accessor :assertions
@@ -47,7 +49,6 @@ module Minitest
         @max_shrinks       = max_shrinks
         @status            = Status.unknown
         @trivial           = false
-        @valid_test_case   = true
         @result            = nil
         @exception         = nil
         @calls             = 0
@@ -126,40 +127,35 @@ module Minitest
       end
 
       def where(&b)
-        @valid_test_case &= b.call
+        raise InvalidProperty unless b.call
       end
 
       def iterate!
         while continue_iterate? && @result.nil? && @valid_test_cases <= @max_success
-          @valid_test_case = true
           @generated = []
           @generator = ::Minitest::Proptest::Gen.new(@random)
           @calls += 1
 
-          success = begin
-                      instance_eval(&@test_proc)
-                    rescue Minitest::Assertion
-                      if @valid_test_case
-                        @result = @generated
-                        @status = Status.interesting
-                      end
-                    rescue => e
-                      raise e if @valid_test_case
-                    end
-          if @valid_test_case && success
-            @status = Status.valid if @status.unknown?
-            @valid_test_cases += 1
-          elsif @valid_test_case
+          begin
+            if instance_eval(&@test_proc)
+              @status = Status.valid if @status.unknown?
+              @valid_test_cases += 1
+            else
+              @result = @generated
+              @status = Status.interesting
+            end
+          rescue Minitest::Assertion
             @result = @generated
             @status = Status.interesting
+          rescue InvalidProperty
+          rescue => e
+            @status = Status.invalid
+            @exception = e
           end
 
           @status = Status.exhausted if @calls >= @max_success * (@max_discard_ratio + 1)
           @trivial = true if @generated.empty?
         end
-      rescue => e
-        @status = Status.invalid
-        @exception = e
       end
 
       def rerun!
@@ -181,22 +177,22 @@ module Minitest
         end
 
         @generator = ::Minitest::Proptest::Gen.new(@random)
-        success = begin
-                    instance_eval(&@test_proc)
-                  rescue Minitest::Assertion
-                    !@valid_test_case
-                  rescue => e
-                    if @valid_test_case
-                      @status = Status.invalid
-                      @exception = e
-                      false
-                    end
-                  end
-        if success || !@valid_test_case
-          @generated = []
-        elsif @valid_test_case
+        begin
+          if instance_eval(&@test_proc)
+            @generated = []
+          else
+            @result = @generated
+            @status = Status.interesting
+          end
+        rescue Minitest::Assertion
           @result = @generated
           @status = Status.interesting
+        rescue InvalidProperty
+          @generated = []
+        rescue => e
+          @result = @generated
+          @status = Status.invalid
+          @exception = e
         end
 
         # Clean up after we're done
@@ -215,6 +211,12 @@ module Minitest
         candidates     = @generated.map(&:shrink_candidates)
         old_arbitrary  = @arbitrary
 
+        # Using a TracePoint to determine variable assignments at the time of
+        # the failure only occurs within shrink! - this is a deliberate decision
+        # which eliminates all time lost in iterate! to optimize for the success
+        # case.  The tradeoff is that if all shrinking fails, one additional
+        # cycle (with the values which produced the original failure) will be
+        # required.
         local_variables = {}
         tracepoint = TracePoint.new(:b_return) do |trace|
           if trace.path == @filename && trace.method_id.to_s == @methodname
@@ -249,27 +251,28 @@ module Minitest
           @valid_test_case = true
 
           @generator = ::Minitest::Proptest::Gen.new(@random)
-          if to_test[run[:run]].map(&:first).reduce(&:+) < best_score
-            success = begin
-                        tracepoint.enable
-                        instance_eval(&@test_proc)
-                      rescue Minitest::Assertion
-                        false
-                      rescue => e
-                        next unless @valid_test_case
-
-                        @status = Status.invalid
-                        @excption = e
-                        break
-                      ensure
-                        tracepoint.disable
-                      end
-
-            if !success && @valid_test_case
-              # The first hit is guaranteed to be the best scoring since the
-              # shrink candidates are pre-sorted.
+          if to_test[run[:run]].map(&:first).reduce(&:+) <= best_score
+            begin
+              tracepoint.enable
+              unless instance_eval(&@test_proc)
+                # The first hit is guaranteed to be the best scoring since the
+                # shrink candidates are pre-sorted.
+                best_generated = @generated
+                break
+              end
+            rescue Minitest::Assertion
               best_generated = @generated
               break
+            rescue InvalidProperty
+              # Invalid test case generated- continue
+            rescue => e
+              next unless @valid_test_case
+
+              @status = Status.invalid
+              @excption = e
+              break
+            ensure
+              tracepoint.disable
             end
           end
 
