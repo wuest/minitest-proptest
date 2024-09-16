@@ -451,6 +451,15 @@ module Minitest
       end.with_score_function do |_|
         1
       end
+
+      generator_for(Time) do
+        r = sized(0xffffffff)
+        Time.at((r & 0x80000000).zero? ? r : -((r ^ 0x7fffffff) - 0x7fffffff))
+      end.with_shrink_function do |t|
+        integral_shrink.call(t.to_i).map(&Time.method(:at))
+      end.with_score_function do |t|
+        t.to_i.abs
+      end
     end
   end
 end
