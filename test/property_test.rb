@@ -326,6 +326,22 @@ class PropertyTest < Minitest::Test
     end
   end
 
+  def test_shrink_time
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Time)
+    property do
+      t = arbitrary Time
+      g = gen.force(t)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, x|
+        score == x.to_i.abs &&
+          x.to_i <= 0x7fffffff &&
+          x.to_i >= -0x80000000 &&
+          ( t.to_i < 0 ? x.to_i <= 1 : x.to_i >= -1 )
+      end
+    end
+  end
+
   def test_where
     property do
       n = arbitrary Int32

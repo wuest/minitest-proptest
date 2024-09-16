@@ -117,6 +117,7 @@ The following types are provided by Minitest-Proptest:
   * `Char` - any single character 0x00-0xff
   * `ASCIIChar` - any character 0x00-0x7f
   * `String` - arbitrary length string of `Char`s
+* `Time` - any time between 1901-12-13 20:45:52 and 2038-01-19 03:14:07 UTC
 * `Bool`
 * Polymorphic types
   * `Array a` - array of arbitrary length of another type
