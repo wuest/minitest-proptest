@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'set'
+
 require 'minitest/proptest/gen/value_generator'
 
 module Minitest
