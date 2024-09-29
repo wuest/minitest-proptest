@@ -70,11 +70,16 @@ module Minitest
 
       def for(*classes)
         generators = self.class.instance_variable_get(:@_generators)
+
         case classes.length
         when 0
-          raise(TypeError, "A generator for #{classes.join(' ')} is not known.  Try adding it with Gen.generator_for.")
+          raise(ArgumentError, 'No classes given to generate values')
         when 1
           gen = generators[classes.first]
+          if gen.nil?
+            raise(TypeError, "No generator for #{classes.join(' ')} - has it been added with Gen.generator_for?")
+          end
+
           if gen.bound_max > 1
             c = rand(gen.bound_max - gen.bound_min + 1) + gen.bound_min
             c.times.reduce(gen.empty(self)) { |g, _| g.append(gen.new(self)) }

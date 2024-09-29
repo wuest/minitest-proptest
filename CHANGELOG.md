@@ -1,3 +1,6 @@
+## [0.3.1] - 2024-10-03
+- Add `Set` generator
+
 ## [0.3.0] - 2024-09-17
 - Bug fix: signed integer psuedotypes could produce MAX + 1 (e.g. 128 for Int8)
 - Bug fix: failure persistence no longer prevents displaying variable
