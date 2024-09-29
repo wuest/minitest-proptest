@@ -423,6 +423,21 @@ module Minitest
         xm.merge(ym)
       end.with_empty { {} }
 
+      generator_for(Set) do |x|
+        Set[x]
+      end.with_shrink_function do |f, xs|
+        list_shrink.call(f, xs.to_a)
+                   .map { |x| Set.new(x) }
+                   .uniq
+      end.with_score_function do |f, xs|
+        xs.reduce(1) do |c, x|
+          y = f.call(x).abs
+          c * (y > 0 ? y + 1 : 1)
+        end.to_i * xs.length
+      end.with_append(0, 0x10) do |xs, ys|
+        xs + ys
+      end.with_empty { Set[] }
+
       generator_for(Range) do |x|
         (x..x)
       end.with_shrink_function(&range_shrink).with_score_function do |f, r|

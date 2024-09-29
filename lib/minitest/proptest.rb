@@ -5,6 +5,7 @@ require 'minitest/proptest/gen'
 require 'minitest/proptest/property'
 require 'minitest/proptest/status'
 require 'minitest/proptest/version'
+require 'set'
 require 'yaml'
 
 module Minitest

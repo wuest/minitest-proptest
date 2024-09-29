@@ -243,6 +243,20 @@ class PropertyTest < Minitest::Test
     end
   end
 
+  def test_shrink_set
+    gen = ::Minitest::Proptest::Gen.new(Random.new).for(Set, Int8)
+    property do
+      a = arbitrary Set, Int8
+      g = gen.force(a)
+      candidates = g.shrink_candidates
+
+      candidates.all? do |score, x|
+        score <= g.score &&
+          x.length <= a.length
+      end
+    end
+  end
+
   def test_shrink_range
     gen = ::Minitest::Proptest::Gen.new(Random.new).for(Range, Int8)
     property do
