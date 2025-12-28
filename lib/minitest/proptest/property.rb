@@ -83,7 +83,7 @@ module Minitest
                elsif @status.interesting?
                  info = 'A counterexample to a property has been found after ' \
                         "#{@valid_test_cases} valid " \
-                        "example#{@valid_test_cases == 1 ? '' : 's'}.\n"
+                        "example#{'s' if @valid_test_cases != 1}.\n"
                  var_info = if @local_variables.empty?
                               'Variables local to the property were unable ' \
                                 'to be determined.  This is usually a bug.'

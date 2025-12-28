@@ -8,13 +8,13 @@ module Minitest
         attr_accessor :entropy
         attr_writer :type_parameters
 
-        def self.with_shrink_function(&f)
-          define_method(:shrink_function, &f)
+        def self.with_shrink_function(&)
+          define_method(:shrink_function, &)
           self
         end
 
-        def self.with_score_function(&f)
-          define_method(:score_function, &f)
+        def self.with_score_function(&)
+          define_method(:score_function, &)
           self
         end
 

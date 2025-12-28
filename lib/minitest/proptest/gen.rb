@@ -39,7 +39,7 @@ module Minitest
         end
       end
 
-      def self.generator_for(klass, &f)
+      def self.generator_for(klass, &)
         new_class = Class.new(ValueGenerator)
         new_class.define_method(:initialize) do |g|
           @entropy         = ->(b = MAX_SIZE) { (@generated << g.rand(b)).last }
@@ -50,7 +50,7 @@ module Minitest
           @type_parameters = []
         end
 
-        new_class.define_method(:generator, &f)
+        new_class.define_method(:generator, &)
 
         instance_variable_get(:@_generators)[klass] = new_class
         self.const_set("#{klass.name}Gen".split('::').last, new_class)
@@ -184,7 +184,7 @@ module Minitest
         elsif xs2.empty?
           [[]]
         else
-          [xs2] + list_remove.call(k, (n - k), xs2).map { |ys| xs1 + ys }
+          [xs2] + list_remove.call(k, n - k, xs2).map { |ys| xs1 + ys }
         end
       end
 
@@ -224,7 +224,7 @@ module Minitest
         else
           h1 = xs1.reduce({}) { |c, e| c.merge({ e => h[e] }) }
           h2 = xs2.reduce({}) { |c, e| c.merge({ e => h[e] }) }
-          [h1, h2] + list_remove.call(k, (n - k), h2).map { |ys| h1.merge(ys.to_h) }
+          [h1, h2] + list_remove.call(k, n - k, h2).map { |ys| h1.merge(ys.to_h) }
         end
       end
 
@@ -271,13 +271,13 @@ module Minitest
       # random values to shrink towards 0.
       generator_for(Integer) do
         r = sized(MAX_SIZE)
-        if (r & SIGN_BIT).zero?
+        if r.nobits?(SIGN_BIT)
           r
         else
           -(((r & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT))
         end
       end.with_shrink_function do |i|
-        j = if (i & SIGN_BIT).zero?
+        j = if i.nobits?(SIGN_BIT)
               i
             else
               -(((i & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT))
@@ -287,22 +287,22 @@ module Minitest
 
       generator_for(Int8) do
         r = sized(0xff)
-        (r & 0x80).zero? ? r : -((r ^ 0x7f) - 0x7f)
+        r.nobits?(0x80) ? r : -((r ^ 0x7f) - 0x7f)
       end.with_shrink_function(&integral_shrink)
 
       generator_for(Int16) do
         r = sized(0xffff)
-        (r & 0x8000).zero? ? r : -((r ^ 0x7fff) - 0x7fff)
+        r.nobits?(0x8000) ? r : -((r ^ 0x7fff) - 0x7fff)
       end.with_shrink_function(&integral_shrink)
 
       generator_for(Int32) do
         r = sized(0xffffffff)
-        (r & 0x80000000).zero? ? r : -((r ^ 0x7fffffff) - 0x7fffffff)
+        r.nobits?(0x80000000) ? r : -((r ^ 0x7fffffff) - 0x7fffffff)
       end.with_shrink_function(&integral_shrink)
 
       generator_for(Int64) do
         r = sized(0xffffffffffffffff)
-        if (r & 0x8000000000000000).zero?
+        if r.nobits?(0x8000000000000000)
           r
         else
           -((r ^ 0x7fffffffffffffff) - 0x7fffffffffffffff)
@@ -438,7 +438,7 @@ module Minitest
       generator_for(Rational) do
         n = sized(MAX_SIZE)
         d = sized(MAX_SIZE - 1) + 1
-        if (n & SIGN_BIT).zero?
+        if n.nobits?(SIGN_BIT)
           Rational(n, d)
         else
           Rational(-(((n & (MAX_SIZE ^ SIGN_BIT)) - 1) ^ (MAX_SIZE ^ SIGN_BIT)), d)
@@ -454,7 +454,7 @@ module Minitest
 
       generator_for(Time) do
         r = sized(0xffffffff)
-        Time.at((r & 0x80000000).zero? ? r : -((r ^ 0x7fffffff) - 0x7fffffff))
+        Time.at(r.nobits?(0x80000000) ? r : -((r ^ 0x7fffffff) - 0x7fffffff))
       end.with_shrink_function do |t|
         integral_shrink.call(t.to_i).map(&Time.method(:at))
       end.with_score_function do |t|

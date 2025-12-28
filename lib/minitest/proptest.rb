@@ -149,8 +149,8 @@ module Minitest
 end
 
 module Kernel
-  def generator_for(klass, &f)
-    ::Minitest::Proptest::Gen.generator_for(klass, &f)
+  def generator_for(klass, &)
+    ::Minitest::Proptest::Gen.generator_for(klass, &)
   end
   private :generator_for
 end

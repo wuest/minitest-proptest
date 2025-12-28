@@ -52,7 +52,7 @@ class CustomGeneratorTest < Minitest::Test
   def test_boxed_uint8
     property do
       a = arbitrary BoxedUInt8
-      a.value >= 0 && a.value <= 255
+      a.value.between?(0, 255)
     end
   end
 
