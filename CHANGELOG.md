@@ -1,3 +1,8 @@
+## [0.4.0] - 2025-25-28
+- Supported versions updated:
+  - Ruby 3.2 - 4.0
+  - Minitest 5.0 - 6.X
+
 ## [0.3.0] - 2024-09-17
 - Bug fix: signed integer psuedotypes could produce MAX + 1 (e.g. 128 for Int8)
 - Bug fix: failure persistence no longer prevents displaying variable

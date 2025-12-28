@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/wuest/minitest-proptest'
   s.license     = 'MIT'
 
-  s.required_ruby_version = '>= 2.7.0'
+  s.required_ruby_version = '>= 3.2.0'
 
   s.metadata['homepage_uri'] = s.homepage
   s.metadata['source_code_uri'] = s.homepage
@@ -22,5 +22,5 @@ Gem::Specification.new do |s|
 
   s.files = `git ls-files lib`.split("\n")
 
-  s.add_dependency 'minitest', '~> 5'
+  s.add_dependency 'minitest', '>= 5', '< 7'
 end
