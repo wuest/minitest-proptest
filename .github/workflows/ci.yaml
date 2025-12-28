@@ -12,6 +12,9 @@ on:
 permissions:
   contents: read
 
+env:
+  BUNDLE_FROZEN: 0
+
 jobs:
   test:
     strategy:
