@@ -78,11 +78,19 @@ Layout/MultilineHashBraceLayout:
 Style/NumericPredicate:
   Enabled: false
 
+Style/OneClassPerFile:
+  Exclude:
+    - 'lib/minitest/proptest.rb'
+
 Style/OptionalBooleanParameter:
   Enabled: false
 
 Style/RedundantSelf:
   Enabled: false
+
+Style/RedundantParentheses:
+  Exclude:
+    - 'lib/minitest/proptest/gen.rb'
 
 Style/RescueStandardError:
   Exclude:
