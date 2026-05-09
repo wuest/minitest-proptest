@@ -18,6 +18,8 @@ module Minitest
         test_proc,
         # The file in which our property lives
         filename,
+        # The class in which our property is defined
+        classname,
         # The method containing our property
         methodname,
         # Any class which provides `rand` accepting both an Integer and a Range
@@ -40,6 +42,7 @@ module Minitest
       )
         @test_proc         = test_proc
         @filename          = filename
+        @classname         = classname
         @methodname        = methodname
         @random            = random.call
         @generator         = ::Minitest::Proptest::Gen.new(@random)
@@ -219,7 +222,7 @@ module Minitest
         # required.
         local_variables = {}
         tracepoint = TracePoint.new(:b_return) do |trace|
-          if trace.path == @filename && trace.method_id.to_s == @methodname
+          if trace.path == @filename && trace.method_id == @methodname && trace.defined_class == @classname
             b     = trace.binding
             vs    = b.local_variables
             known = vs.to_h { |lv| [lv.to_s, b.local_variable_get(lv)] }
