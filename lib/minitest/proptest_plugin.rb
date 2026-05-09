@@ -57,13 +57,15 @@ module Minitest
                        Proptest::DEFAULT_RANDOM
                      end
 
-      file, methodname = caller.first.split(/:\d+:in +/)
-      classname = self.class.name
-      methodname.gsub!(/(?:^`|'$)/, '')
+      file, full_method = caller.first.split(/:\d+:in +/)
+      classname, methodname = full_method.gsub!(/(?:^[`']|'$)/, '').split(/[#.]/, 2)
+      classname = classname.split('::').reduce(Kernel, &:const_get)
+      methodname = methodname.to_sym
 
       prop = Minitest::Proptest::Property.new(
         f,
         file,
+        classname,
         methodname,
         random: random_thunk,
         max_success: Proptest.max_success,
