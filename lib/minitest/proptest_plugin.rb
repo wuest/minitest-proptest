@@ -58,8 +58,8 @@ module Minitest
                      end
 
       file, full_method = caller.first.split(/:\d+:in +/)
-      classname, methodname = full_method.gsub!(/(?:^[`']|'$)/, '').split(/[#.]/, 2)
-      classname = classname.split('::').reduce(Kernel, &:const_get)
+      methodname = full_method.gsub(/(?:^.+[#.]|'$)/, '')
+      classname = self.class.name
       methodname = methodname.to_sym
 
       prop = Minitest::Proptest::Property.new(
