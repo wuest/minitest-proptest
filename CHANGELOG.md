@@ -1,4 +1,7 @@
-## [0.4.0] - 2026-05-10
+## [0.5.1] - 2026-06-13
+- Fix display bug to ensure Ruby 3.3 - 4.0 are universally supported when shrinking
+
+## [0.5.0] - 2026-05-10
 - Supported versions updated:
   - Ruby 3.3 - 4.0
 - Fixed display bug under 4.0 where new TracePoint interface caused shrinker to fail to report local variables
