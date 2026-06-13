@@ -222,7 +222,7 @@ module Minitest
         # required.
         local_variables = {}
         tracepoint = TracePoint.new(:b_return) do |trace|
-          if trace.path == @filename && trace.method_id == @methodname && trace.defined_class == @classname
+          if trace.path == @filename && trace.method_id == @methodname && trace.defined_class.name == @classname
             b     = trace.binding
             vs    = b.local_variables
             known = vs.to_h { |lv| [lv.to_s, b.local_variable_get(lv)] }
